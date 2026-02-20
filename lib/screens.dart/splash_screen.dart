@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pos/screens.dart/home_screen.dart';
+import 'package:pos/screens.dart/login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -24,7 +26,6 @@ class _SplashScreenState extends State<SplashScreen>
       duration: const Duration(seconds: 6),
     );
 
-    // Logo fades out from 3s to 4s
     _logoFadeOut = Tween<double>(begin: 1, end: 0).animate(
       CurvedAnimation(
         parent: _controller,
@@ -32,7 +33,6 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
-    // Icon fades in from 3s to 6s
     _iconFadeIn = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(
         parent: _controller,
@@ -42,14 +42,32 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
-    // Navigate to HomeScreen after 6 seconds
-    Timer(const Duration(seconds: 6), () {
+    _navigateAfterSplash();
+  }
+
+  Future<void> _navigateAfterSplash() async {
+    await Future.delayed(const Duration(seconds: 6));
+
+    final session = Supabase.instance.client.auth.currentSession;
+
+    if (!mounted) return;
+
+    if (session != null) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (context) => const HomeScreen(title: 'Flutter POS Home', userName: '',),
+          builder: (context) => const HomeScreen(
+            title: 'Flutter POS Home',
+            userName: '',
+          ),
         ),
       );
-    });
+    } else {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => const LoginScreen(),
+        ),
+      );
+    }
   }
 
   @override
@@ -61,7 +79,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFFFD700), 
+      backgroundColor: const Color(0xFFFFD700),
       body: Center(
         child: Stack(
           alignment: Alignment.center,
