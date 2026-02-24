@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pos/Core/custom_app_bar.dart';
 
-
 class HomeScreen extends StatelessWidget {
   final String? userName;
 
@@ -10,7 +9,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: CustomAppBar.build(userName),
+      appBar: CustomAppBar.build(context, userName),
       body: const Center(
         child: Text(
           'Welcome to your POS App!',
