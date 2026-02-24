@@ -8,14 +8,14 @@ class CustomAppBar {
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Welcome,", style: TextStyle(fontSize: 16)),
+          const Text("Welcome,", style: TextStyle(fontSize: 16, color: Colors.white70)),
           Text(
             userName ?? "Guest",
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
         ],
       ),
-      backgroundColor: const Color(0xFFFF2400),
+      backgroundColor: const Color.fromARGB(255, 2, 13, 110),
       elevation: 4,
       actions: [
         IconButton(
