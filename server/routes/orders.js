@@ -24,6 +24,31 @@ router.get('/', (req, res) => {
   }
 });
 
+// GET stats (today's orders count and revenue) - must be before /:id
+router.get('/stats', (req, res) => {
+  try {
+    const { user_id } = req.query;
+    let sql = `
+      SELECT COUNT(*) as count, COALESCE(SUM(total), 0) as revenue
+      FROM orders
+      WHERE DATE(created_at) = DATE('now', 'localtime')
+      AND status != 'cancelled'
+    `;
+    const params = [];
+    if (user_id) {
+      sql += ' AND user_id = ?';
+      params.push(user_id);
+    }
+    const row = db.prepare(sql).get(...params);
+    res.json({
+      today_orders_count: row.count,
+      today_revenue: row.revenue ?? 0,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET single order with items
 router.get('/:id', (req, res) => {
   try {
