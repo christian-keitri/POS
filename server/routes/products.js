@@ -149,11 +149,26 @@ router.put('/:id', (req, res) => {
   }
 });
 
-// DELETE product
+// DELETE product (fails if product is used in any order)
 router.delete('/:id', (req, res) => {
   try {
-    const result = db.prepare('DELETE FROM products WHERE id = ?').run(req.params.id);
-    if (result.changes === 0) return res.status(404).json({ error: 'Product not found' });
+    const id = req.params.id;
+    const existing = db.prepare('SELECT id, image_path FROM products WHERE id = ?').get(id);
+    if (!existing) return res.status(404).json({ error: 'Product not found' });
+
+    const usedInOrders = db.prepare('SELECT 1 FROM order_items WHERE product_id = ? LIMIT 1').get(id);
+    if (usedInOrders) {
+      return res.status(400).json({
+        error: 'Cannot delete: this product is used in existing orders. Remove it from orders first or use a different product.',
+      });
+    }
+
+    if (existing.image_path) {
+      const imagePath = path.join(uploadsDir, existing.image_path);
+      if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
+    }
+
+    db.prepare('DELETE FROM products WHERE id = ?').run(id);
     res.status(204).send();
   } catch (err) {
     res.status(500).json({ error: err.message });

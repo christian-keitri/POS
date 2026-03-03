@@ -123,8 +123,12 @@ class ApiService {
   static Future<void> deleteProduct(int id) async {
     final r = await http.delete(Uri.parse('$_base/api/products/$id'));
     if (r.statusCode != 204) {
-      final body = r.body.isEmpty ? {} : jsonDecode(r.body) as Map<String, dynamic>;
-      throw Exception(body['error'] ?? r.body);
+      String msg = r.body;
+      try {
+        final body = jsonDecode(r.body);
+        if (body is Map && body.containsKey('error')) msg = body['error'] as String;
+      } catch (_) {}
+      throw Exception(msg);
     }
   }
 
