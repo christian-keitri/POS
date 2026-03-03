@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pos/theme/app_theme.dart';
 import 'package:pos/screens.dart/splash_screen.dart';
 
 Future<void> main() async {
@@ -14,12 +15,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Flutter POS',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFFFD700), // Matches your splash gold
-        ),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.themeData,
       home: const SplashScreen(),
     );
   }

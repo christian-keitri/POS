@@ -1,26 +1,40 @@
 import 'package:flutter/material.dart';
+import 'package:pos/core/app_state.dart';
+import 'package:pos/theme/app_theme.dart';
 import 'package:pos/screens.dart/login_screen.dart';
 
 class CustomAppBar {
-  static AppBar build(BuildContext context, String? userName) {
+  static AppBar build(BuildContext context, [String? userName]) {
+    final displayName = userName ?? AppState.currentUser?.displayName ?? 'Guest';
     return AppBar(
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Welcome,", style: TextStyle(fontSize: 16, color: Colors.white70)),
           Text(
-            userName ?? "Guest",
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            "Welcome,",
+            style: TextStyle(
+              fontSize: AppTheme.fontSizeCaption,
+              color: Colors.white.withOpacity(0.85),
+            ),
+          ),
+          Text(
+            displayName,
+            style: const TextStyle(
+              fontSize: AppTheme.fontSizeHeading,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
           ),
         ],
       ),
-      backgroundColor: const Color.fromARGB(255, 2, 13, 110),
-      elevation: 4,
+      backgroundColor: AppTheme.appBarBackground,
+      elevation: 0,
       actions: [
         IconButton(
           icon: const Icon(Icons.logout),
           tooltip: 'Logout',
           onPressed: () {
+            AppState.currentUser = null;
             Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(

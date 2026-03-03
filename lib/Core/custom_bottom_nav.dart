@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pos/theme/app_theme.dart';
 
 class NavItem {
   final IconData icon;
@@ -25,9 +26,9 @@ class CustomBottomNav extends StatelessWidget {
     required this.currentIndex,
     required this.onTap,
     required this.items,
-    this.activeColor = const Color(0xFFFFD700),
-    this.inactiveColor = Colors.grey,
-    this.backgroundColor = Colors.white,
+    this.activeColor = AppTheme.primary,
+    this.inactiveColor = AppTheme.textMuted,
+    this.backgroundColor = AppTheme.surface,
   });
 
   @override
@@ -112,7 +113,7 @@ class _NavItemWidget extends StatelessWidget {
               child: Text(
                 item.label,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppTheme.fontSizeSmall,
                   fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                   color: isActive ? activeColor : inactiveColor,
                 ),
