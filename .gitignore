@@ -45,3 +45,8 @@ app.*.map.json
 /android/app/release
 
 .env
+
+# Node.js POS server
+server/node_modules/
+server/data/
+server/.env

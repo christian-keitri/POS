@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:http/http.dart' as http;
+import 'package:pos/config/api_config.dart';
 import 'package:pos/screens.dart/home_screen.dart';
 import 'package:pos/screens.dart/signup_screen.dart';
 
@@ -17,42 +19,49 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _loading = false;
 
-  final supabase = Supabase.instance.client;
-
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _loading = true);
 
     try {
-      final response = await supabase.auth.signInWithPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/api/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': _emailController.text.trim(),
+          'password': _passwordController.text.trim(),
+        }),
       );
 
-      if (response.user != null && mounted) {
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        final user = jsonDecode(response.body);
+        final displayName = user['business_name']?.toString() ?? user['email']?.toString() ?? 'User';
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (_) => const HomeScreen(
+            builder: (_) => HomeScreen(
               title: 'Flutter POS Home',
-              userName: '',
+              userName: displayName,
             ),
           ),
         );
+      } else {
+        final body = jsonDecode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(body['error']?.toString() ?? 'Login failed')),
+        );
       }
-    } on AuthException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Something went wrong")),
-      );
-    }
-
-    if (mounted) {
-      setState(() => _loading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Cannot reach server: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 

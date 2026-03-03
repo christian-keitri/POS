@@ -1,7 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:pos/screens.dart/home_screen.dart';
 import 'package:pos/screens.dart/login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -48,26 +46,13 @@ class _SplashScreenState extends State<SplashScreen>
   Future<void> _navigateAfterSplash() async {
     await Future.delayed(const Duration(seconds: 6));
 
-    final session = Supabase.instance.client.auth.currentSession;
-
     if (!mounted) return;
 
-    if (session != null) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => const HomeScreen(
-            title: 'Flutter POS Home',
-            userName: '',
-          ),
-        ),
-      );
-    } else {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => const LoginScreen(),
-        ),
-      );
-    }
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (context) => const LoginScreen(),
+      ),
+    );
   }
 
   @override

@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:http/http.dart' as http;
+import 'package:pos/config/api_config.dart';
 import 'package:pos/screens.dart/login_screen.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -16,7 +18,6 @@ class _SignupScreenState extends State<SignupScreen> {
   final _confirmPasswordController = TextEditingController();
 
   final _formKey = GlobalKey<FormState>();
-  final supabase = Supabase.instance.client;
 
   bool _loading = false;
 
@@ -34,41 +35,46 @@ class _SignupScreenState extends State<SignupScreen> {
     setState(() => _loading = true);
 
     try {
-      final response = await supabase.auth.signUp(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-        data: {
-          'business_name': _businessController.text.trim(),
-          'role': 'admin', // First user is admin
-        },
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/api/auth/signup'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': _emailController.text.trim(),
+          'password': _passwordController.text.trim(),
+          'business_name': _businessController.text.trim().isEmpty
+              ? null
+              : _businessController.text.trim(),
+        }),
       );
 
-      if (response.user != null && mounted) {
+      if (!mounted) return;
+
+      if (response.statusCode == 201) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Account created! Check your email to verify."),
+            content: Text("Account created! You can now log in."),
           ),
         );
-
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (_) => const LoginScreen(),
           ),
         );
+      } else {
+        final body = jsonDecode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(body['error']?.toString() ?? 'Signup failed')),
+        );
       }
-    } on AuthException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Something went wrong")),
-      );
-    }
-
-    if (mounted) {
-      setState(() => _loading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Cannot reach server: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
