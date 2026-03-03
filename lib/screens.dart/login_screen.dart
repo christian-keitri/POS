@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:pos/config/api_config.dart';
+import 'package:pos/core/app_state.dart';
+import 'package:pos/theme/app_theme.dart';
 import 'package:pos/screens.dart/home_screen.dart';
 import 'package:pos/screens.dart/signup_screen.dart';
 
@@ -37,15 +39,17 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
 
       if (response.statusCode == 200) {
-        final user = jsonDecode(response.body);
-        final displayName = user['business_name']?.toString() ?? user['email']?.toString() ?? 'User';
+        final user = jsonDecode(response.body) as Map<String, dynamic>;
+        AppState.currentUser = AppUser(
+          id: (user['id'] as num).toInt(),
+          email: user['email'] as String,
+          businessName: user['business_name'] as String?,
+        );
+        if (!mounted) return;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (_) => HomeScreen(
-              title: 'Flutter POS Home',
-              userName: displayName,
-            ),
+            builder: (_) => const HomeScreen(title: 'POS'),
           ),
         );
       } else {
@@ -75,21 +79,21 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFFFD700),
+      backgroundColor: AppTheme.primary,
       body: Center(
         child: SingleChildScrollView(
           child: Container(
             width: 400,
-            padding: const EdgeInsets.all(30),
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(15),
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.shade300,
-                  blurRadius: 15,
-                  spreadRadius: 3,
-                )
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 24,
+                  offset: const Offset(0, 8),
+                ),
               ],
             ),
             child: Form(
@@ -97,21 +101,17 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
+                  Text(
                     "POS Login",
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: AppTheme.displayStyle,
                   ),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 32),
 
                   /// Email
                   TextFormField(
                     controller: _emailController,
                     decoration: const InputDecoration(
                       labelText: "Email",
-                      border: OutlineInputBorder(),
                     ),
                     validator: (value) =>
                         value!.isEmpty ? "Enter your email" : null,
@@ -125,32 +125,33 @@ class _LoginScreenState extends State<LoginScreen> {
                     obscureText: true,
                     decoration: const InputDecoration(
                       labelText: "Password",
-                      border: OutlineInputBorder(),
                     ),
                     validator: (value) =>
                         value!.isEmpty ? "Enter your password" : null,
                   ),
 
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 32),
 
                   /// Login Button
                   SizedBox(
                     width: double.infinity,
-                    height: 50,
+                    height: 52,
                     child: ElevatedButton(
                       onPressed: _loading ? null : _login,
                       child: _loading
-                          ? const CircularProgressIndicator(
-                              color: Colors.white,
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
                             )
-                          : const Text(
-                              "Login",
-                              style: TextStyle(fontSize: 16),
-                            ),
+                          : const Text("Login"),
                     ),
                   ),
 
-                  const SizedBox(height: 15),
+                  const SizedBox(height: 20),
 
                   /// Signup Link
                   TextButton(
@@ -162,7 +163,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       );
                     },
-                    child: const Text("Create an account"),
+                    child: Text(
+                      "Create an account",
+                      style: AppTheme.captionStyle.copyWith(
+                        color: AppTheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ],
               ),

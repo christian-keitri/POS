@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:pos/config/api_config.dart';
+import 'package:pos/theme/app_theme.dart';
 import 'package:pos/screens.dart/login_screen.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -90,21 +91,21 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: AppTheme.background,
       body: Center(
         child: SingleChildScrollView(
           child: Container(
             width: 400,
-            padding: const EdgeInsets.all(30),
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(15),
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.shade300,
-                  blurRadius: 15,
-                  spreadRadius: 3,
-                )
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 24,
+                  offset: const Offset(0, 8),
+                ),
               ],
             ),
             child: Form(
@@ -112,21 +113,17 @@ class _SignupScreenState extends State<SignupScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
+                  Text(
                     "Create POS Account",
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: AppTheme.titleStyle,
                   ),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 32),
 
                   /// Business Name
                   TextFormField(
                     controller: _businessController,
                     decoration: const InputDecoration(
                       labelText: "Business Name",
-                      border: OutlineInputBorder(),
                     ),
                     validator: (value) =>
                         value!.isEmpty ? "Enter business name" : null,
@@ -139,7 +136,6 @@ class _SignupScreenState extends State<SignupScreen> {
                     controller: _emailController,
                     decoration: const InputDecoration(
                       labelText: "Email",
-                      border: OutlineInputBorder(),
                     ),
                     validator: (value) =>
                         value!.isEmpty ? "Enter email" : null,
@@ -153,7 +149,6 @@ class _SignupScreenState extends State<SignupScreen> {
                     obscureText: true,
                     decoration: const InputDecoration(
                       labelText: "Password",
-                      border: OutlineInputBorder(),
                     ),
                     validator: (value) =>
                         value!.length < 6 ? "Minimum 6 characters" : null,
@@ -167,39 +162,46 @@ class _SignupScreenState extends State<SignupScreen> {
                     obscureText: true,
                     decoration: const InputDecoration(
                       labelText: "Confirm Password",
-                      border: OutlineInputBorder(),
                     ),
                     validator: (value) =>
                         value!.isEmpty ? "Confirm your password" : null,
                   ),
 
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 32),
 
                   /// Sign Up Button
                   SizedBox(
                     width: double.infinity,
-                    height: 50,
+                    height: 52,
                     child: ElevatedButton(
                       onPressed: _loading ? null : _signup,
                       child: _loading
-                          ? const CircularProgressIndicator(
-                              color: Colors.white,
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
                             )
-                          : const Text(
-                              "Sign Up",
-                              style: TextStyle(fontSize: 16),
-                            ),
+                          : const Text("Sign Up"),
                     ),
                   ),
 
-                  const SizedBox(height: 15),
+                  const SizedBox(height: 20),
 
                   /// Back to Login
                   TextButton(
                     onPressed: () {
                       Navigator.pop(context);
                     },
-                    child: const Text("Already have an account? Login"),
+                    child: Text(
+                      "Already have an account? Login",
+                      style: AppTheme.captionStyle.copyWith(
+                        color: AppTheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ],
               ),

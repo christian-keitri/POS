@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:pos/theme/app_theme.dart';
 import 'package:pos/screens.dart/login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -64,7 +65,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFD700),
+      backgroundColor: AppTheme.primary,
       body: Center(
         child: Stack(
           alignment: Alignment.center,
