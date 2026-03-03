@@ -427,13 +427,13 @@ class _ProductsTabState extends State<_ProductsTab> {
     try {
       await ApiService.deleteProduct(p.id);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Product deleted')));
+        AppSnackBar.success(context, 'Product deleted');
         _load();
       }
     } catch (e) {
       if (mounted) {
         final msg = e.toString().replaceFirst('Exception: ', '');
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+        AppSnackBar.error(context, msg);
       }
     }
   }
@@ -619,11 +619,11 @@ class _ProfileTabState extends State<_ProfileTab> {
     try {
       await ApiService.createCategory(name);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Category added')));
+        AppSnackBar.success(context, 'Category added');
         _load();
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+      if (mounted) AppSnackBar.error(context, 'Failed: $e');
     }
   }
 

@@ -135,6 +135,80 @@ class AppTheme {
           borderRadius: BorderRadius.circular(16),
         ),
       ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: appBarBackground,
+        contentTextStyle: const TextStyle(
+          fontSize: fontSizeBody,
+          fontWeight: FontWeight.w500,
+          color: Colors.white,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        elevation: 6,
+        showCloseIcon: true,
+        closeIconColor: Colors.white70,
+      ),
     );
   }
+}
+
+/// Sleek snackbars with optional type (success / error) and consistent styling.
+class AppSnackBar {
+  AppSnackBar._();
+
+  static void show(
+    BuildContext context,
+    String message, {
+    bool isError = false,
+    bool isSuccess = false,
+  }) {
+    final theme = Theme.of(context).snackBarTheme;
+    final backgroundColor = isError
+        ? AppTheme.error
+        : isSuccess
+            ? AppTheme.success
+            : (theme.backgroundColor ?? AppTheme.appBarBackground);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            if (isError || isSuccess) ...[
+              Icon(
+                isError ? Icons.error_outline_rounded : Icons.check_circle_outline_rounded,
+                color: Colors.white,
+                size: 22,
+              ),
+              const SizedBox(width: 12),
+            ],
+            Expanded(
+              child: Text(
+                message,
+                style: theme.contentTextStyle?.copyWith(color: Colors.white) ??
+                    const TextStyle(color: Colors.white, fontSize: AppTheme.fontSizeBody),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: backgroundColor,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        elevation: 6,
+        showCloseIcon: true,
+        closeIconColor: Colors.white70,
+      ),
+    );
+  }
+
+  static void success(BuildContext context, String message) =>
+      show(context, message, isSuccess: true);
+
+  static void error(BuildContext context, String message) =>
+      show(context, message, isError: true);
 }

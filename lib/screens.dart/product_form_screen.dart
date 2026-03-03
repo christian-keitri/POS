@@ -76,9 +76,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       if (xFile != null && mounted) setState(() => _pickedImage = xFile);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not pick image: $e')),
-        );
+        AppSnackBar.error(context, 'Could not pick image: $e');
       }
     }
   }
@@ -91,9 +89,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     final cost = double.tryParse(_costController.text) ?? 0;
     final stock = int.tryParse(_stockController.text) ?? 0;
     if (price == null || price < 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a valid price')),
-      );
+      AppSnackBar.show(context, 'Enter a valid price');
       return;
     }
     setState(() => _saving = true);
@@ -110,9 +106,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
           categoryId: _selectedCategoryId,
         );
         productId = widget.product!.id;
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Product updated')),
-        );
+        if (mounted) AppSnackBar.success(context, 'Product updated');
       } else {
         final created = await ApiService.createProduct(
           name: name,
@@ -123,24 +117,18 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
           categoryId: _selectedCategoryId,
         );
         productId = created.id;
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Product created')),
-        );
+        if (mounted) AppSnackBar.success(context, 'Product created');
       }
       if (_pickedImage != null) {
         final file = File(_pickedImage!.path);
         if (file.existsSync()) {
           await ApiService.uploadProductImage(productId, file);
-          if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Image uploaded')),
-          );
+          if (mounted) AppSnackBar.success(context, 'Image uploaded');
         }
       }
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed: $e')),
-      );
+      if (mounted) AppSnackBar.error(context, 'Failed: $e');
     } finally {
       if (mounted) setState(() => _saving = false);
     }

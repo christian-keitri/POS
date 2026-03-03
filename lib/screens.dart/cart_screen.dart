@@ -74,9 +74,7 @@ class _CartScreenState extends State<CartScreen> {
 
   Future<void> _placeOrder() async {
     if (_cart.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cart is empty')),
-      );
+      AppSnackBar.show(context, 'Cart is empty');
       return;
     }
     setState(() => _placing = true);
@@ -89,16 +87,12 @@ class _CartScreenState extends State<CartScreen> {
         items: items,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Order placed successfully')),
-      );
+      AppSnackBar.success(context, 'Order placed successfully');
       Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
         final msg = e.toString().replaceFirst('Exception: ', '');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Order failed: $msg')),
-        );
+        AppSnackBar.error(context, 'Order failed: $msg');
       }
     } finally {
       if (mounted) setState(() => _placing = false);

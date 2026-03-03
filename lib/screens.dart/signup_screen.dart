@@ -27,9 +27,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
     if (_passwordController.text.trim() !=
         _confirmPasswordController.text.trim()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Passwords do not match")),
-      );
+      AppSnackBar.error(context, 'Passwords do not match');
       return;
     }
 
@@ -51,11 +49,7 @@ class _SignupScreenState extends State<SignupScreen> {
       if (!mounted) return;
 
       if (response.statusCode == 201) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Account created! You can now log in."),
-          ),
-        );
+        AppSnackBar.success(context, 'Account created! You can now log in.');
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -64,15 +58,11 @@ class _SignupScreenState extends State<SignupScreen> {
         );
       } else {
         final body = jsonDecode(response.body);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(body['error']?.toString() ?? 'Signup failed')),
-        );
+        AppSnackBar.error(context, body['error']?.toString() ?? 'Signup failed');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Cannot reach server: $e')),
-        );
+        AppSnackBar.error(context, 'Cannot reach server: $e');
       }
     } finally {
       if (mounted) setState(() => _loading = false);

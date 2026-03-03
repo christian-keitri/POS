@@ -48,9 +48,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       if (mounted) await _load();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed: $e')),
-        );
+        AppSnackBar.error(context, 'Failed: $e');
       }
     }
   }
