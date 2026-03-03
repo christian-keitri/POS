@@ -11,6 +11,7 @@ import 'package:pos/screens.dart/order_detail_screen.dart';
 import 'package:pos/config/api_config.dart';
 import 'package:pos/screens.dart/product_form_screen.dart';
 import 'package:pos/theme/app_theme.dart';
+import 'package:pos/widgets/category_pills.dart';
 
 class HomeScreen extends StatefulWidget {
   final String? userName;
@@ -460,26 +461,15 @@ class _ProductsTabState extends State<_ProductsTab> {
                 )
               : Column(
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                      child: DropdownButtonFormField<int?>(
-                        value: _filterCategoryId,
-                        decoration: const InputDecoration(
-                          labelText: 'Category',
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        ),
-                        items: [
-                          const DropdownMenuItem(value: null, child: Text('All')),
-                          ..._categories.map((c) => DropdownMenuItem(
-                                value: c.id,
-                                child: Text(c.name),
-                              )),
-                        ],
-                        onChanged: (v) => setState(() {
-                          _filterCategoryId = v;
+                    CategoryPills(
+                      categories: _categories,
+                      selectedCategoryId: _filterCategoryId,
+                      onCategorySelected: (id) {
+                        setState(() {
+                          _filterCategoryId = id;
                           _load();
-                        }),
-                      ),
+                        });
+                      },
                     ),
                     Expanded(
                       child: _products.isEmpty

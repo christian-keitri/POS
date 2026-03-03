@@ -146,7 +146,6 @@ class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         elevation: 6,
         showCloseIcon: true,
         closeIconColor: Colors.white70,
