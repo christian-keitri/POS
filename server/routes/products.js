@@ -1,6 +1,31 @@
 const express = require('express');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const router = express.Router();
 const db = require('../db');
+
+const uploadsDir = path.join(__dirname, '..', 'uploads');
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadsDir),
+  filename: (_req, file, cb) => {
+    const ext = (path.extname(file.originalname) || '.jpg').toLowerCase().replace(/[^a-z]/g, '') || 'jpg';
+    cb(null, `product_${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`);
+  },
+});
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ok =
+      /^image\/(jpeg|jpg|png|gif|webp)$/i.test(file.mimetype) ||
+      file.mimetype === 'application/octet-stream' ||
+      !file.mimetype;
+    cb(null, !!ok);
+  },
+});
 
 // GET all products (optional ?category_id=)
 router.get('/', (req, res) => {
@@ -48,8 +73,8 @@ router.post('/', (req, res) => {
       return res.status(400).json({ error: 'name and price are required' });
     }
     const stmt = db.prepare(`
-      INSERT INTO products (name, sku, price, cost, stock, category_id)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO products (name, sku, price, cost, stock, category_id, image_path)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
     const result = stmt.run(
       name,
@@ -57,10 +82,36 @@ router.post('/', (req, res) => {
       Number(price),
       cost != null ? Number(cost) : 0,
       stock != null ? Number(stock) : 0,
-      category_id || null
+      category_id || null,
+      null
     );
     const product = db.prepare('SELECT * FROM products WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(product);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST upload product image (multipart form with field "image")
+router.post('/:id/image', upload.single('image'), (req, res) => {
+  try {
+    const id = req.params.id;
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image file uploaded' });
+    }
+    const existing = db.prepare('SELECT id, image_path FROM products WHERE id = ?').get(id);
+    if (!existing) {
+      fs.unlink(req.file.path, () => {});
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    if (existing.image_path) {
+      const oldPath = path.join(uploadsDir, existing.image_path);
+      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    }
+    const imagePath = path.basename(req.file.path);
+    db.prepare('UPDATE products SET image_path = ?, updated_at = datetime(\'now\') WHERE id = ?').run(imagePath, id);
+    const product = db.prepare('SELECT * FROM products WHERE id = ?').get(id);
+    res.json(product);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -89,6 +140,7 @@ router.put('/:id', (req, res) => {
           updated_at = datetime('now')
       WHERE id = ?
     `).run(updates.name, updates.sku, updates.price, updates.cost, updates.stock, updates.category_id, id);
+    // image_path is updated via POST /:id/image
 
     const product = db.prepare('SELECT * FROM products WHERE id = ?').get(id);
     res.json(product);

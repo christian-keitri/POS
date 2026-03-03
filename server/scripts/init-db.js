@@ -44,6 +44,7 @@ db.exec(`
     cost REAL DEFAULT 0 CHECK (cost >= 0),
     stock INTEGER DEFAULT 0 CHECK (stock >= 0),
     category_id INTEGER REFERENCES categories(id),
+    image_path TEXT,
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
   );
@@ -73,6 +74,13 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_orders_created ON orders(created_at);
   CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
 `);
+
+// Add image_path to products if missing (for existing DBs)
+try {
+  db.exec(`ALTER TABLE products ADD COLUMN image_path TEXT`);
+} catch (e) {
+  if (!e.message.includes('duplicate column')) throw e;
+}
 
 // Seed data (only if tables are empty)
 const categoryCount = db.prepare('SELECT COUNT(*) as c FROM categories').get();

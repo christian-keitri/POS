@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pos/config/api_config.dart';
 import 'package:pos/core/app_state.dart';
 import 'package:pos/models/product.dart';
 import 'package:pos/services/api_service.dart';
@@ -154,6 +155,27 @@ class _CartScreenState extends State<CartScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
+                                    if (p.imagePath != null && p.imagePath!.isNotEmpty)
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.network(
+                                          productImageUrl(p.imagePath),
+                                          height: 56,
+                                          width: double.infinity,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                                        ),
+                                      )
+                                    else
+                                      Container(
+                                        height: 56,
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.border,
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Icon(Icons.inventory_2_rounded, color: AppTheme.textMuted, size: 32),
+                                      ),
+                                    const SizedBox(height: 8),
                                     Text(
                                       p.name,
                                       style: AppTheme.headingStyle,

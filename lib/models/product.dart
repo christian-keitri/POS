@@ -7,6 +7,8 @@ class Product {
   final int stock;
   final int? categoryId;
   final String? categoryName;
+  /// Server path (filename) for product image; full URL is apiBaseUrl + /uploads/ + imagePath
+  final String? imagePath;
 
   const Product({
     required this.id,
@@ -17,6 +19,7 @@ class Product {
     this.stock = 0,
     this.categoryId,
     this.categoryName,
+    this.imagePath,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -29,6 +32,7 @@ class Product {
       stock: (json['stock'] as num?)?.toInt() ?? 0,
       categoryId: (json['category_id'] as num?)?.toInt(),
       categoryName: json['category_name'] as String?,
+      imagePath: json['image_path'] as String?,
     );
   }
 

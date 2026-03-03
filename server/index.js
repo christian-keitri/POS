@@ -18,8 +18,15 @@ if (!fs.existsSync(dataDir)) {
   console.log('Created data directory. Run "npm run init-db" to create the database.');
 }
 
+// Ensure uploads directory exists (for product images)
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static(uploadsDir));
 
 app.use('/api/products', productsRouter);
 app.use('/api/orders', ordersRouter);

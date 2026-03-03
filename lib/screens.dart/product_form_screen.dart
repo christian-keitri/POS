@@ -1,4 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:pos/config/api_config.dart';
 import 'package:pos/models/category.dart';
 import 'package:pos/models/product.dart';
 import 'package:pos/services/api_service.dart';
@@ -15,6 +18,7 @@ class ProductFormScreen extends StatefulWidget {
 
 class _ProductFormScreenState extends State<ProductFormScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _picker = ImagePicker();
   late TextEditingController _nameController;
   late TextEditingController _skuController;
   late TextEditingController _priceController;
@@ -24,6 +28,8 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
   int? _selectedCategoryId;
   bool _loading = false;
   bool _saving = false;
+  /// New image picked this session (camera or gallery)
+  XFile? _pickedImage;
 
   bool get isEditing => widget.product != null;
 
@@ -63,6 +69,20 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     }
   }
 
+  Future<void> _pickImage(bool fromCamera) async {
+    try {
+      final source = fromCamera ? ImageSource.camera : ImageSource.gallery;
+      final xFile = await _picker.pickImage(source: source, maxWidth: 1200, imageQuality: 85);
+      if (xFile != null && mounted) setState(() => _pickedImage = xFile);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not pick image: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     final name = _nameController.text.trim();
@@ -78,6 +98,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     }
     setState(() => _saving = true);
     try {
+      int productId;
       if (isEditing) {
         await ApiService.updateProduct(
           widget.product!.id,
@@ -88,11 +109,12 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
           stock: stock,
           categoryId: _selectedCategoryId,
         );
+        productId = widget.product!.id;
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Product updated')),
         );
       } else {
-        await ApiService.createProduct(
+        final created = await ApiService.createProduct(
           name: name,
           sku: sku,
           price: price,
@@ -100,9 +122,19 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
           stock: stock,
           categoryId: _selectedCategoryId,
         );
+        productId = created.id;
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Product created')),
         );
+      }
+      if (_pickedImage != null) {
+        final file = File(_pickedImage!.path);
+        if (file.existsSync()) {
+          await ApiService.uploadProductImage(productId, file);
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Image uploaded')),
+          );
+        }
       }
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
@@ -112,6 +144,69 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  Widget _buildImageSection() {
+    final existingPath = widget.product?.imagePath;
+    final hasExisting = existingPath != null && existingPath.isNotEmpty;
+    final hasNew = _pickedImage != null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Product image', style: AppTheme.captionStyle),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(
+                width: 100,
+                height: 100,
+                child: hasNew
+                    ? Image.file(File(_pickedImage!.path), fit: BoxFit.cover)
+                    : hasExisting
+                        ? Image.network(
+                            productImageUrl(existingPath),
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: AppTheme.border,
+                              child: const Icon(Icons.broken_image_outlined, size: 40),
+                            ),
+                          )
+                        : Container(
+                            color: AppTheme.border,
+                            child: Icon(Icons.image_not_supported_outlined, size: 40, color: AppTheme.textMuted),
+                          ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextButton.icon(
+                  onPressed: _saving ? null : () => _pickImage(false),
+                  icon: const Icon(Icons.photo_library_outlined, size: 20),
+                  label: const Text('Gallery'),
+                ),
+                TextButton.icon(
+                  onPressed: _saving ? null : () => _pickImage(true),
+                  icon: const Icon(Icons.camera_alt_outlined, size: 20),
+                  label: const Text('Camera'),
+                ),
+                if (hasNew)
+                  TextButton.icon(
+                    onPressed: _saving ? null : () => setState(() => _pickedImage = null),
+                    icon: const Icon(Icons.close, size: 18),
+                    label: const Text('Remove'),
+                  ),
+              ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
   }
 
   @override
@@ -131,6 +226,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    _buildImageSection(),
                     TextFormField(
                       controller: _nameController,
                       decoration: const InputDecoration(labelText: 'Product name'),

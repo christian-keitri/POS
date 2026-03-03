@@ -8,6 +8,7 @@ import 'package:pos/models/product.dart';
 import 'package:pos/services/api_service.dart';
 import 'package:pos/screens.dart/cart_screen.dart';
 import 'package:pos/screens.dart/order_detail_screen.dart';
+import 'package:pos/config/api_config.dart';
 import 'package:pos/screens.dart/product_form_screen.dart';
 import 'package:pos/theme/app_theme.dart';
 
@@ -388,6 +389,24 @@ class _ProductsTabState extends State<_ProductsTab> {
     }
   }
 
+  Widget _productThumbnail(String? imagePath) {
+    if (imagePath == null || imagePath.isEmpty) {
+      return CircleAvatar(
+        radius: 24,
+        backgroundColor: AppTheme.border,
+        child: Icon(Icons.inventory_2_rounded, color: AppTheme.textMuted, size: 28),
+      );
+    }
+    final url = productImageUrl(imagePath);
+    return CircleAvatar(
+      radius: 24,
+      backgroundColor: AppTheme.border,
+      backgroundImage: NetworkImage(url),
+      onBackgroundImageError: (_, __) {},
+      child: url.isEmpty ? const Icon(Icons.broken_image) : null,
+    );
+  }
+
   Future<void> _deleteProduct(Product p) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -479,6 +498,7 @@ class _ProductsTabState extends State<_ProductsTab> {
                                 return Card(
                                   margin: const EdgeInsets.only(bottom: 12),
                                   child: ListTile(
+                                    leading: _productThumbnail(p.imagePath),
                                     title: Text(p.name, style: AppTheme.bodyStyle),
                                     subtitle: Text(
                                       '\$${p.price.toStringAsFixed(2)} · Stock: ${p.stock}',

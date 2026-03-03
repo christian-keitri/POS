@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:pos/config/api_config.dart';
 import 'package:pos/models/category.dart';
 import 'package:pos/models/order.dart';
@@ -124,6 +126,37 @@ class ApiService {
       final body = r.body.isEmpty ? {} : jsonDecode(r.body) as Map<String, dynamic>;
       throw Exception(body['error'] ?? r.body);
     }
+  }
+
+  /// Upload product image (JPEG/PNG/GIF/WebP, max 5MB). Call after create/update product.
+  static Future<Product> uploadProductImage(int productId, File imageFile) async {
+    if (!imageFile.existsSync()) throw Exception('Image file not found');
+    final bytes = await imageFile.readAsBytes();
+    final uri = Uri.parse('$_base/api/products/$productId/image');
+    final request = http.MultipartRequest('POST', uri);
+    final ext = imageFile.path.toLowerCase().split('.').last;
+    final isPng = ext == 'png';
+    final isGif = ext == 'gif';
+    final isWebp = ext == 'webp';
+    final mime = isPng ? 'image/png' : isGif ? 'image/gif' : isWebp ? 'image/webp' : 'image/jpeg';
+    final name = 'image.${ext == 'jpg' || ext == 'jpeg' || isPng || isGif || isWebp ? ext : 'jpg'}';
+    request.files.add(http.MultipartFile.fromBytes(
+      'image',
+      bytes,
+      filename: name,
+      contentType: MediaType.parse(mime),
+    ));
+    final streamed = await request.send();
+    final r = await http.Response.fromStream(streamed);
+    if (r.statusCode != 200) {
+      String msg = r.body;
+      try {
+        final decoded = jsonDecode(r.body);
+        if (decoded is Map && decoded.containsKey('error')) msg = decoded['error'] as String;
+      } catch (_) {}
+      throw Exception(msg);
+    }
+    return Product.fromJson(jsonDecode(r.body) as Map<String, dynamic>);
   }
 
   static Future<Map<String, dynamic>> getOrderStats({int? userId}) async {
