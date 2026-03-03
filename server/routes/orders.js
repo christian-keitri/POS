@@ -82,33 +82,33 @@ router.post('/', (req, res) => {
     const updateProductStock = db.prepare('UPDATE products SET stock = stock - ? WHERE id = ?');
 
     let total = 0;
-    const productPrices = new Map();
+    const productPrices = new Map(); // key: product id (number)
 
     for (const item of items) {
-      const { product_id, quantity } = item;
-      const qty = Number(quantity) || 1;
-      const product = db.prepare('SELECT id, price, stock FROM products WHERE id = ?').get(product_id);
+      const productId = Number(item.product_id);
+      const qty = Math.max(1, Number(item.quantity) || 1);
+      const product = db.prepare('SELECT id, name, price, stock FROM products WHERE id = ?').get(productId);
       if (!product) {
-        return res.status(400).json({ error: `Product ${product_id} not found` });
+        return res.status(400).json({ error: `Product ${productId} not found` });
       }
       if (product.stock < qty) {
-        return res.status(400).json({ error: `Insufficient stock for product ${product.name}` });
+        return res.status(400).json({ error: `Insufficient stock for "${product.name}" (have ${product.stock}, need ${qty})` });
       }
       const subtotal = product.price * qty;
       total += subtotal;
-      productPrices.set(product_id, { price: product.price, quantity: qty });
+      productPrices.set(productId, { price: product.price, quantity: qty });
     }
 
     const run = db.transaction(() => {
-      const orderResult = insertOrder.run(user_id || null, 'pending');
-      const orderId = orderResult.lastInsertRowid;
+      const orderResult = insertOrder.run(user_id != null ? String(user_id) : null, 'pending');
+      const orderId = Number(orderResult.lastInsertRowid);
       for (const item of items) {
-        const { product_id, quantity } = item;
-        const qty = Number(quantity) || 1;
-        const { price } = productPrices.get(product_id);
+        const productId = Number(item.product_id);
+        const qty = productPrices.get(productId).quantity;
+        const price = productPrices.get(productId).price;
         const subtotal = price * qty;
-        insertItem.run(orderId, product_id, qty, price, subtotal);
-        updateProductStock.run(qty, product_id);
+        insertItem.run(orderId, productId, qty, price, subtotal);
+        updateProductStock.run(qty, productId);
       }
       db.prepare('UPDATE orders SET total = ? WHERE id = ?').run(total, orderId);
       return orderId;

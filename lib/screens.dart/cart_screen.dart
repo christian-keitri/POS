@@ -94,8 +94,9 @@ class _CartScreenState extends State<CartScreen> {
       Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
+        final msg = e.toString().replaceFirst('Exception: ', '');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed: $e')),
+          SnackBar(content: Text('Order failed: $msg')),
         );
       }
     } finally {

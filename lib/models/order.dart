@@ -1,3 +1,18 @@
+/// Parses a JSON value that may be num or String to int/double.
+int _toInt(dynamic v) {
+  if (v == null) return 0;
+  if (v is num) return v.toInt();
+  if (v is String) return int.tryParse(v) ?? 0;
+  return 0;
+}
+
+double _toDouble(dynamic v) {
+  if (v == null) return 0.0;
+  if (v is num) return v.toDouble();
+  if (v is String) return double.tryParse(v) ?? 0.0;
+  return 0.0;
+}
+
 class OrderItem {
   final int id;
   final int productId;
@@ -17,12 +32,12 @@ class OrderItem {
 
   factory OrderItem.fromJson(Map<String, dynamic> json) {
     return OrderItem(
-      id: (json['id'] as num).toInt(),
-      productId: (json['product_id'] as num).toInt(),
+      id: _toInt(json['id']),
+      productId: _toInt(json['product_id']),
       productName: json['product_name'] as String? ?? '',
-      quantity: (json['quantity'] as num).toInt(),
-      unitPrice: (json['unit_price'] as num).toDouble(),
-      subtotal: (json['subtotal'] as num).toDouble(),
+      quantity: _toInt(json['quantity']),
+      unitPrice: _toDouble(json['unit_price']),
+      subtotal: _toDouble(json['subtotal']),
     );
   }
 }
@@ -46,10 +61,11 @@ class Order {
 
   factory Order.fromJson(Map<String, dynamic> json) {
     final itemsList = json['items'] as List<dynamic>?;
+    final userIdRaw = json['user_id'];
     return Order(
-      id: (json['id'] as num).toInt(),
-      userId: (json['user_id'] as num?)?.toInt(),
-      total: (json['total'] as num).toDouble(),
+      id: _toInt(json['id']),
+      userId: userIdRaw == null ? null : _toInt(userIdRaw),
+      total: _toDouble(json['total']),
       status: json['status'] as String? ?? 'pending',
       createdAt: json['created_at'] as String? ?? '',
       items: itemsList != null

@@ -152,6 +152,14 @@ class ApiService {
     return Order.fromJson(jsonDecode(r.body) as Map<String, dynamic>);
   }
 
+  static int _itemInt(dynamic v) {
+    if (v == null) return 0;
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    if (v is String) return int.tryParse(v) ?? 0;
+    return 0;
+  }
+
   static Future<Order> createOrder({
     int? userId,
     required List<Map<String, dynamic>> items,
@@ -161,12 +169,23 @@ class ApiService {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'user_id': userId,
-        'items': items,
+        'items': items
+            .map((e) => {
+                  'product_id': _itemInt(e['product_id']),
+                  'quantity': _itemInt(e['quantity']).clamp(1, 999999),
+                })
+            .toList(),
       }),
     );
     if (r.statusCode != 201) {
-      final err = jsonDecode(r.body) as Map<String, dynamic>;
-      throw Exception(err['error'] ?? r.body);
+      String message = r.body;
+      try {
+        final decoded = jsonDecode(r.body);
+        if (decoded is Map && decoded.containsKey('error')) {
+          message = decoded['error'] as String;
+        }
+      } catch (_) {}
+      throw Exception(message);
     }
     return Order.fromJson(jsonDecode(r.body) as Map<String, dynamic>);
   }
