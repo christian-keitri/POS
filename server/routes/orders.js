@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const { safeErrorMessage } = require('../lib/safeError');
 
 // GET all orders (optional ?user_id=, ?status=)
 router.get('/', (req, res) => {
@@ -20,7 +21,7 @@ router.get('/', (req, res) => {
     const orders = db.prepare(sql).all(...params);
     res.json(orders);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: safeErrorMessage(err) });
   }
 });
 
@@ -45,7 +46,7 @@ router.get('/stats', (req, res) => {
       today_revenue: row.revenue ?? 0,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: safeErrorMessage(err) });
   }
 });
 
@@ -62,7 +63,7 @@ router.get('/:id', (req, res) => {
     `).all(req.params.id);
     res.json({ ...order, items });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: safeErrorMessage(err) });
   }
 });
 
@@ -133,7 +134,7 @@ router.post('/', (req, res) => {
     `).all(orderId);
     res.status(201).json({ ...order, items: orderItems });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: safeErrorMessage(err) });
   }
 });
 
@@ -169,7 +170,7 @@ router.patch('/:id', (req, res) => {
     const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(id);
     res.json(order);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: safeErrorMessage(err) });
   }
 });
 

@@ -2,6 +2,11 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const db = require('../db');
+const { safeErrorMessage } = require('../lib/safeError');
+
+// Basic validation helpers
+const isValidEmail = (e) => typeof e === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
+const isValidPassword = (p) => typeof p === 'string' && p.length >= 8;
 
 // POST /api/auth/signup - create account
 router.post('/signup', (req, res) => {
@@ -9,6 +14,12 @@ router.post('/signup', (req, res) => {
     const { email, password, business_name } = req.body;
     if (!email || !password) {
       return res.status(400).json({ error: 'email and password are required' });
+    }
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+    if (!isValidPassword(password)) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
     }
     const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email.toLowerCase().trim());
     if (existing) {
@@ -21,7 +32,7 @@ router.post('/signup', (req, res) => {
     const user = db.prepare('SELECT id, email, business_name, role, created_at FROM users WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(user);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: safeErrorMessage(err) });
   }
 });
 
@@ -31,6 +42,9 @@ router.post('/login', (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) {
       return res.status(400).json({ error: 'email and password are required' });
+    }
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
     }
     const user = db.prepare('SELECT id, email, password_hash, business_name, role, created_at FROM users WHERE email = ?').get(email.toLowerCase().trim());
     if (!user) {
@@ -42,7 +56,7 @@ router.post('/login', (req, res) => {
     const { password_hash: _, ...safe } = user;
     res.json(safe);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: safeErrorMessage(err) });
   }
 });
 
@@ -52,7 +66,7 @@ router.get('/users', (req, res) => {
     const users = db.prepare('SELECT id, email, business_name, role, created_at FROM users ORDER BY created_at DESC').all();
     res.json(users);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: safeErrorMessage(err) });
   }
 });
 

@@ -1,13 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const { safeErrorMessage } = require('../lib/safeError');
 
 router.get('/', (req, res) => {
   try {
     const categories = db.prepare('SELECT * FROM categories ORDER BY sort_order, name').all();
     res.json(categories);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: safeErrorMessage(err) });
   }
 });
 
@@ -21,7 +22,7 @@ router.post('/', (req, res) => {
     const category = db.prepare('SELECT * FROM categories WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(category);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: safeErrorMessage(err) });
   }
 });
 
@@ -40,7 +41,7 @@ router.put('/:id', (req, res) => {
     const category = db.prepare('SELECT * FROM categories WHERE id = ?').get(req.params.id);
     res.json(category);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: safeErrorMessage(err) });
   }
 });
 
@@ -50,7 +51,7 @@ router.delete('/:id', (req, res) => {
     if (result.changes === 0) return res.status(404).json({ error: 'Category not found' });
     res.status(204).send();
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: safeErrorMessage(err) });
   }
 });
 

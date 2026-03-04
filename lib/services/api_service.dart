@@ -23,8 +23,8 @@ class ApiService {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'name': name,
-        'description': ?description,
-        'sort_order': ?sortOrder,
+        'description': description,
+        'sort_order': sortOrder,
       }),
     );
     if (r.statusCode != 201) {
@@ -40,8 +40,8 @@ class ApiService {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'name': name,
-        'description': ?description,
-        'sort_order': ?sortOrder,
+        'description': description,
+        'sort_order': sortOrder,
       }),
     );
     if (r.statusCode != 200) {

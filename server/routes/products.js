@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const router = express.Router();
 const db = require('../db');
+const { safeErrorMessage, safeUploadPath } = require('../lib/safeError');
 
 const uploadsDir = path.join(__dirname, '..', 'uploads');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
@@ -50,7 +51,7 @@ router.get('/', (req, res) => {
     const products = db.prepare(sql).all(...params);
     res.json(products);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: safeErrorMessage(err) });
   }
 });
 
@@ -66,7 +67,7 @@ router.get('/:id', (req, res) => {
     if (!row) return res.status(404).json({ error: 'Product not found' });
     res.json(row);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: safeErrorMessage(err) });
   }
 });
 
@@ -96,7 +97,7 @@ router.post('/', (req, res) => {
     const product = db.prepare('SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?').get(result.lastInsertRowid);
     res.status(201).json(product);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: safeErrorMessage(err) });
   }
 });
 
@@ -113,15 +114,15 @@ router.post('/:id/image', upload.single('image'), (req, res) => {
       return res.status(404).json({ error: 'Product not found' });
     }
     if (existing.image_path) {
-      const oldPath = path.join(uploadsDir, existing.image_path);
-      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      const oldPath = safeUploadPath(uploadsDir, existing.image_path);
+      if (oldPath && fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
     }
     const imagePath = path.basename(req.file.path);
     db.prepare('UPDATE products SET image_path = ?, updated_at = datetime(\'now\') WHERE id = ?').run(imagePath, id);
     const product = db.prepare('SELECT * FROM products WHERE id = ?').get(id);
     res.json(product);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: safeErrorMessage(err) });
   }
 });
 
@@ -156,7 +157,7 @@ router.put('/:id', (req, res) => {
     const product = db.prepare('SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?').get(id);
     res.json(product);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: safeErrorMessage(err) });
   }
 });
 
@@ -175,14 +176,14 @@ router.delete('/:id', (req, res) => {
     }
 
     if (existing.image_path) {
-      const imagePath = path.join(uploadsDir, existing.image_path);
-      if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
+      const imagePath = safeUploadPath(uploadsDir, existing.image_path);
+      if (imagePath && fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
     }
 
     db.prepare('DELETE FROM products WHERE id = ?').run(id);
     res.status(204).send();
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: safeErrorMessage(err) });
   }
 });
 
