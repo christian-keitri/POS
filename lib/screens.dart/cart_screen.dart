@@ -42,15 +42,19 @@ class _CartScreenState extends State<CartScreen> {
     });
     try {
       final list = await ApiService.getProducts(activeOnly: true);
-      if (mounted) setState(() {
+      if (mounted) {
+        setState(() {
         _products = list;
         _loading = false;
       });
+      }
     } catch (e) {
-      if (mounted) setState(() {
+      if (mounted) {
+        setState(() {
         _error = e.toString();
         _loading = false;
       });
+      }
     }
   }
 
@@ -170,7 +174,7 @@ class _CartScreenState extends State<CartScreen> {
                                           height: 56,
                                           width: double.infinity,
                                           fit: BoxFit.cover,
-                                          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                                          errorBuilder: (_, _, _) => const SizedBox.shrink(),
                                         ),
                                       )
                                     else
@@ -204,7 +208,7 @@ class _CartScreenState extends State<CartScreen> {
                                                 style: IconButton.styleFrom(
                                                   padding: const EdgeInsets.all(4),
                                                   minimumSize: const Size(32, 32),
-                                                  backgroundColor: AppTheme.primary.withOpacity(0.2),
+                                                  backgroundColor: AppTheme.primary.withValues(alpha: 0.2),
                                                 ),
                                                 onPressed: () => _removeFromCart(p.id),
                                                 icon: const Icon(Icons.remove, size: 18),
@@ -217,7 +221,7 @@ class _CartScreenState extends State<CartScreen> {
                                                 style: IconButton.styleFrom(
                                                   padding: const EdgeInsets.all(4),
                                                   minimumSize: const Size(32, 32),
-                                                  backgroundColor: AppTheme.primary.withOpacity(0.2),
+                                                  backgroundColor: AppTheme.primary.withValues(alpha: 0.2),
                                                 ),
                                                 onPressed: () => _addToCart(p),
                                                 icon: const Icon(Icons.add, size: 18),
@@ -240,7 +244,7 @@ class _CartScreenState extends State<CartScreen> {
                         color: AppTheme.surface,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.06),
+                            color: Colors.black.withValues(alpha: 0.06),
                             blurRadius: 8,
                             offset: const Offset(0, -2),
                           ),
@@ -255,7 +259,7 @@ class _CartScreenState extends State<CartScreen> {
                               children: [
                                 Expanded(
                                   child: DropdownButtonFormField<String>(
-                                    value: _selectedPaymentMethod,
+                                    initialValue: _selectedPaymentMethod,
                                     decoration: const InputDecoration(
                                       labelText: 'Payment',
                                       isDense: true,
@@ -293,7 +297,7 @@ class _CartScreenState extends State<CartScreen> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Text('${_cartItemCount} items', style: AppTheme.captionStyle),
+                                      Text('$_cartItemCount items', style: AppTheme.captionStyle),
                                       Text(
                                         '\$${_cartTotal.toStringAsFixed(2)}',
                                         style: AppTheme.titleStyle,

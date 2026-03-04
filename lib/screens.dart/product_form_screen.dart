@@ -68,10 +68,12 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     setState(() => _loading = true);
     try {
       final list = await ApiService.getCategories();
-      if (mounted) setState(() {
+      if (mounted) {
+        setState(() {
         _categories = list;
         _loading = false;
       });
+      }
     } catch (e) {
       if (mounted) setState(() => _loading = false);
     }
@@ -173,7 +175,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                         ? Image.network(
                             productImageUrl(existingPath),
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
+                            errorBuilder: (_, _, _) => Container(
                               color: AppTheme.border,
                               child: const Icon(Icons.broken_image_outlined, size: 40),
                             ),
@@ -242,7 +244,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<int?>(
-                      value: _selectedCategoryId,
+                      initialValue: _selectedCategoryId,
                       decoration: const InputDecoration(
                         labelText: 'Category',
                         prefixIcon: Icon(Icons.category_outlined),
@@ -335,7 +337,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                         ),
                         value: _isActive,
                         onChanged: _saving ? null : (v) => setState(() => _isActive = v),
-                        activeColor: AppTheme.primary,
+                        activeThumbColor: AppTheme.primary,
                       ),
                     ),
                     const SizedBox(height: 32),

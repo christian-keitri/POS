@@ -14,7 +14,7 @@ class CustomAppBar {
             "Welcome,",
             style: TextStyle(
               fontSize: AppTheme.fontSizeCaption,
-              color: Colors.white.withOpacity(0.85),
+              color: Colors.white.withValues(alpha: 0.85),
             ),
           ),
           Text(

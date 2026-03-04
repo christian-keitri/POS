@@ -116,15 +116,19 @@ class _DashboardTabState extends State<_DashboardTab> {
     });
     try {
       final stats = await ApiService.getOrderStats(userId: AppState.currentUser?.id);
-      if (mounted) setState(() {
+      if (mounted) {
+        setState(() {
         _stats = stats;
         _loading = false;
       });
+      }
     } catch (e) {
-      if (mounted) setState(() {
+      if (mounted) {
+        setState(() {
         _error = e.toString();
         _loading = false;
       });
+      }
     }
   }
 
@@ -244,7 +248,7 @@ class _DashboardTabState extends State<_DashboardTab> {
                         Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: AppTheme.primary.withOpacity(0.12),
+                            color: AppTheme.primary.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: const Icon(Icons.add_shopping_cart_rounded, color: AppTheme.primary, size: 28),
@@ -315,7 +319,7 @@ class _StatCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.12),
+                color: color.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: color, size: 26),
@@ -366,19 +370,22 @@ class _OrdersTabState extends State<_OrdersTab> {
     });
     try {
       final list = await ApiService.getOrders(userId: AppState.currentUser?.id, status: _statusFilter);
-      if (mounted) setState(() {
+      if (mounted) {
+        setState(() {
         _orders = list;
         _loading = false;
       });
+      }
     } catch (e) {
-      if (mounted) setState(() {
+      if (mounted) {
+        setState(() {
         _error = e.toString();
         _loading = false;
       });
+      }
     }
   }
 
-  List<Order> get _filteredOrders => _orders;
 
   @override
   Widget build(BuildContext context) {
@@ -432,10 +439,10 @@ class _OrdersTabState extends State<_OrdersTab> {
                             Container(
                               padding: const EdgeInsets.all(24),
                               decoration: BoxDecoration(
-                                color: AppTheme.primary.withOpacity(0.08),
+                                color: AppTheme.primary.withValues(alpha: 0.08),
                                 shape: BoxShape.circle,
                               ),
-                              child: Icon(Icons.receipt_long_rounded, size: 56, color: AppTheme.primary.withOpacity(0.8)),
+                              child: Icon(Icons.receipt_long_rounded, size: 56, color: AppTheme.primary.withValues(alpha: 0.8)),
                             ),
                             const SizedBox(height: 24),
                             Text('No orders yet', style: AppTheme.headingStyle, textAlign: TextAlign.center),
@@ -472,7 +479,7 @@ class _OrdersTabState extends State<_OrdersTab> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: AppTheme.primary.withOpacity(0.12),
+                                  color: AppTheme.primary.withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Text('${_orders.length}', style: AppTheme.smallStyle.copyWith(color: AppTheme.primary, fontWeight: FontWeight.w600)),
@@ -515,10 +522,10 @@ class _OrdersTabState extends State<_OrdersTab> {
                                     leading: CircleAvatar(
                                       radius: 26,
                                       backgroundColor: o.status == 'completed'
-                                          ? AppTheme.success.withOpacity(0.15)
+                                          ? AppTheme.success.withValues(alpha: 0.15)
                                           : o.status == 'cancelled'
-                                              ? AppTheme.error.withOpacity(0.15)
-                                              : AppTheme.primary.withOpacity(0.15),
+                                              ? AppTheme.error.withValues(alpha: 0.15)
+                                              : AppTheme.primary.withValues(alpha: 0.15),
                                       child: Icon(
                                         o.status == 'completed' ? Icons.check_rounded : o.status == 'cancelled' ? Icons.close_rounded : Icons.receipt_long_rounded,
                                         color: o.status == 'completed' ? AppTheme.success : o.status == 'cancelled' ? AppTheme.error : AppTheme.primary,
@@ -632,16 +639,20 @@ class _ProductsTabState extends State<_ProductsTab> {
         ApiService.getProducts(categoryId: _filterCategoryId, activeOnly: !_showInactive),
         ApiService.getCategories(),
       ]);
-      if (mounted) setState(() {
+      if (mounted) {
+        setState(() {
         _products = results[0] as List<Product>;
         _categories = results[1] as List<Category>;
         _loading = false;
       });
+      }
     } catch (e) {
-      if (mounted) setState(() {
+      if (mounted) {
+        setState(() {
         _error = e.toString();
         _loading = false;
       });
+      }
     }
   }
 
@@ -658,7 +669,7 @@ class _ProductsTabState extends State<_ProductsTab> {
       radius: 24,
       backgroundColor: AppTheme.border,
       backgroundImage: NetworkImage(url),
-      onBackgroundImageError: (_, __) {},
+      onBackgroundImageError: (_, _) {},
       child: url.isEmpty ? const Icon(Icons.broken_image) : null,
     );
   }
@@ -748,7 +759,7 @@ class _ProductsTabState extends State<_ProductsTab> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: AppTheme.primary.withOpacity(0.12),
+                              color: AppTheme.primary.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text('${_products.length}', style: AppTheme.smallStyle.copyWith(color: AppTheme.primary, fontWeight: FontWeight.w600)),
@@ -780,7 +791,7 @@ class _ProductsTabState extends State<_ProductsTab> {
                               _showInactive = v;
                               _load();
                             }),
-                            activeColor: AppTheme.primary,
+                            activeThumbColor: AppTheme.primary,
                           ),
                         ],
                       ),
@@ -796,10 +807,10 @@ class _ProductsTabState extends State<_ProductsTab> {
                                     Container(
                                       padding: const EdgeInsets.all(24),
                                       decoration: BoxDecoration(
-                                        color: AppTheme.primary.withOpacity(0.08),
+                                        color: AppTheme.primary.withValues(alpha: 0.08),
                                         shape: BoxShape.circle,
                                       ),
-                                      child: Icon(Icons.inventory_2_rounded, size: 56, color: AppTheme.primary.withOpacity(0.8)),
+                                      child: Icon(Icons.inventory_2_rounded, size: 56, color: AppTheme.primary.withValues(alpha: 0.8)),
                                     ),
                                     const SizedBox(height: 24),
                                     Text('No products', style: AppTheme.headingStyle, textAlign: TextAlign.center),
@@ -854,7 +865,7 @@ class _ProductsTabState extends State<_ProductsTab> {
                                           Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                             decoration: BoxDecoration(
-                                              color: AppTheme.textMuted.withOpacity(0.2),
+                                              color: AppTheme.textMuted.withValues(alpha: 0.2),
                                               borderRadius: BorderRadius.circular(8),
                                             ),
                                             child: Text(
@@ -943,10 +954,12 @@ class _ProfileTabState extends State<_ProfileTab> {
     setState(() => _loading = true);
     try {
       final list = await ApiService.getCategories();
-      if (mounted) setState(() {
+      if (mounted) {
+        setState(() {
         _categories = list;
         _loading = false;
       });
+      }
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
@@ -1134,7 +1147,7 @@ class _ProfileTabState extends State<_ProfileTab> {
                   children: [
                     CircleAvatar(
                       radius: 32,
-                      backgroundColor: AppTheme.primary.withOpacity(0.15),
+                      backgroundColor: AppTheme.primary.withValues(alpha: 0.15),
                       child: Text(
                         (user?.displayName ?? '?').isNotEmpty ? (user!.displayName[0].toUpperCase()) : '?',
                         style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: AppTheme.primary),
@@ -1200,7 +1213,7 @@ class _ProfileTabState extends State<_ProfileTab> {
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       leading: CircleAvatar(
                         radius: 22,
-                        backgroundColor: AppTheme.primary.withOpacity(0.15),
+                        backgroundColor: AppTheme.primary.withValues(alpha: 0.15),
                         child: Text('${c.sortOrder}', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600, fontSize: 12)),
                       ),
                       title: Text(c.name, style: AppTheme.bodyStyle.copyWith(fontWeight: FontWeight.w500)),

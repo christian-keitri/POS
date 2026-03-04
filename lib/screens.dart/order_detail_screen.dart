@@ -67,10 +67,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         _staggerController.forward(); // drives future stagger if needed
       }
     } catch (e) {
-      if (mounted) setState(() {
+      if (mounted) {
+        setState(() {
         _error = e.toString();
         _loading = false;
       });
+      }
     }
   }
 
@@ -102,7 +104,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   DropdownButtonFormField<String>(
-                    value: selectedPayment,
+                    initialValue: selectedPayment,
                     decoration: const InputDecoration(labelText: 'Payment method'),
                     items: [
                       const DropdownMenuItem(value: null, child: Text('Not set')),
@@ -400,12 +402,12 @@ class _OrderSummaryCardState extends State<_OrderSummaryCard> {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.06),
+                color: Colors.black.withValues(alpha: 0.06),
                 blurRadius: 20,
                 offset: const Offset(0, 8),
               ),
               BoxShadow(
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withValues(alpha: 0.8),
                 blurRadius: 20,
                 offset: const Offset(-4, -4),
               ),
@@ -490,9 +492,9 @@ class _StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Text(
         label,
@@ -530,7 +532,7 @@ class _SectionTitle extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           decoration: BoxDecoration(
-            color: _textMuted.withOpacity(0.15),
+            color: _textMuted.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
@@ -583,12 +585,12 @@ class _ItemCardState extends State<_ItemCard> {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
                 BoxShadow(
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withValues(alpha: 0.9),
                   blurRadius: 12,
                   offset: const Offset(-2, -2),
                 ),
@@ -604,8 +606,8 @@ class _ItemCardState extends State<_ItemCard> {
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        _accent.withOpacity(0.25),
-                        _accentDark.withOpacity(0.15),
+                        _accent.withValues(alpha: 0.25),
+                        _accentDark.withValues(alpha: 0.15),
                       ],
                     ),
                     borderRadius: BorderRadius.circular(14),
@@ -616,7 +618,7 @@ class _ItemCardState extends State<_ItemCard> {
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
-                        color: _accentDark.withOpacity(0.9),
+                        color: _accentDark.withValues(alpha: 0.9),
                       ),
                     ),
                   ),
@@ -676,12 +678,12 @@ class _TotalCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            _accent.withOpacity(0.15),
-            _accentDark.withOpacity(0.08),
+            _accent.withValues(alpha: 0.15),
+            _accentDark.withValues(alpha: 0.08),
           ],
         ),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: _accent.withOpacity(0.25)),
+        border: Border.all(color: _accent.withValues(alpha: 0.25)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -740,7 +742,7 @@ class _PaymentRow extends StatelessWidget {
         color: _surface,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4)),
         ],
       ),
       child: Row(
@@ -748,7 +750,7 @@ class _PaymentRow extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: _accent.withOpacity(0.12),
+              color: _accent.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, size: 22, color: _accent),
@@ -832,14 +834,14 @@ class _ActionButtonsState extends State<_ActionButtons> {
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   decoration: BoxDecoration(
                     color: destructive
-                        ? _errorColor.withOpacity(0.08)
+                        ? _errorColor.withValues(alpha: 0.08)
                         : accent
                             ? _accent
                             : _surface,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: destructive
-                          ? _errorColor.withOpacity(0.3)
+                          ? _errorColor.withValues(alpha: 0.3)
                           : accent
                               ? _accent
                               : const Color(0xFFE5E7EB),
@@ -847,7 +849,7 @@ class _ActionButtonsState extends State<_ActionButtons> {
                     boxShadow: [
                       if (!accent && !destructive)
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withValues(alpha: 0.05),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
