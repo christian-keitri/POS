@@ -17,11 +17,15 @@ class ApiService {
     return list.map((e) => Category.fromJson(e as Map<String, dynamic>)).toList();
   }
 
-  static Future<Category> createCategory(String name) async {
+  static Future<Category> createCategory(String name, {String? description, int? sortOrder}) async {
     final r = await http.post(
       Uri.parse('$_base/api/categories'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'name': name}),
+      body: jsonEncode({
+        'name': name,
+        if (description != null) 'description': description,
+        if (sortOrder != null) 'sort_order': sortOrder,
+      }),
     );
     if (r.statusCode != 201) {
       final err = jsonDecode(r.body);
@@ -30,11 +34,15 @@ class ApiService {
     return Category.fromJson(jsonDecode(r.body) as Map<String, dynamic>);
   }
 
-  static Future<void> updateCategory(int id, String name) async {
+  static Future<void> updateCategory(int id, String name, {String? description, int? sortOrder}) async {
     final r = await http.put(
       Uri.parse('$_base/api/categories/$id'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'name': name}),
+      body: jsonEncode({
+        'name': name,
+        if (description != null) 'description': description,
+        if (sortOrder != null) 'sort_order': sortOrder,
+      }),
     );
     if (r.statusCode != 200) {
       final err = jsonDecode(r.body);
@@ -50,9 +58,12 @@ class ApiService {
     }
   }
 
-  static Future<List<Product>> getProducts({int? categoryId}) async {
+  static Future<List<Product>> getProducts({int? categoryId, bool activeOnly = false}) async {
     var url = '$_base/api/products';
-    if (categoryId != null) url += '?category_id=$categoryId';
+    final q = <String>[];
+    if (categoryId != null) q.add('category_id=$categoryId');
+    if (activeOnly) q.add('active_only=1');
+    if (q.isNotEmpty) url += '?${q.join('&')}';
     final r = await http.get(Uri.parse(url));
     if (r.statusCode != 200) throw Exception(r.body);
     final list = jsonDecode(r.body) as List;
@@ -68,10 +79,13 @@ class ApiService {
   static Future<Product> createProduct({
     required String name,
     String? sku,
+    String? barcode,
+    String? description,
     required double price,
     double? cost,
     int? stock,
     int? categoryId,
+    bool isActive = true,
   }) async {
     final r = await http.post(
       Uri.parse('$_base/api/products'),
@@ -79,10 +93,13 @@ class ApiService {
       body: jsonEncode({
         'name': name,
         'sku': sku,
+        'barcode': barcode,
+        'description': description,
         'price': price,
         'cost': cost,
         'stock': stock,
         'category_id': categoryId,
+        'is_active': isActive,
       }),
     );
     if (r.statusCode != 201) {
@@ -96,22 +113,28 @@ class ApiService {
     int id, {
     String? name,
     String? sku,
+    String? barcode,
+    String? description,
     double? price,
     double? cost,
     int? stock,
     int? categoryId,
+    bool? isActive,
   }) async {
+    final body = <String, dynamic>{};
+    if (name != null) body['name'] = name;
+    if (sku != null) body['sku'] = sku;
+    if (barcode != null) body['barcode'] = barcode;
+    if (description != null) body['description'] = description;
+    if (price != null) body['price'] = price;
+    if (cost != null) body['cost'] = cost;
+    if (stock != null) body['stock'] = stock;
+    if (categoryId != null) body['category_id'] = categoryId;
+    if (isActive != null) body['is_active'] = isActive;
     final r = await http.put(
       Uri.parse('$_base/api/products/$id'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        if (name != null) 'name': name,
-        if (sku != null) 'sku': sku,
-        if (price != null) 'price': price,
-        if (cost != null) 'cost': cost,
-        if (stock != null) 'stock': stock,
-        if (categoryId != null) 'category_id': categoryId,
-      }),
+      body: jsonEncode(body),
     );
     if (r.statusCode != 200) {
       final err = jsonDecode(r.body) as Map<String, dynamic>;
@@ -199,6 +222,9 @@ class ApiService {
 
   static Future<Order> createOrder({
     int? userId,
+    int? cashierId,
+    String? paymentMethod,
+    String? notes,
     required List<Map<String, dynamic>> items,
   }) async {
     final r = await http.post(
@@ -206,6 +232,9 @@ class ApiService {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'user_id': userId,
+        'cashier_id': cashierId,
+        'payment_method': paymentMethod,
+        'notes': notes,
         'items': items
             .map((e) => {
                   'product_id': _itemInt(e['product_id']),
@@ -228,10 +257,24 @@ class ApiService {
   }
 
   static Future<Order> updateOrderStatus(int id, String status) async {
+    return updateOrder(id, status: status);
+  }
+
+  static Future<Order> updateOrder(
+    int id, {
+    String? status,
+    String? paymentMethod,
+    String? notes,
+  }) async {
+    final body = <String, dynamic>{};
+    if (status != null) body['status'] = status;
+    if (paymentMethod != null) body['payment_method'] = paymentMethod;
+    if (notes != null) body['notes'] = notes;
+    if (body.isEmpty) throw Exception('Provide at least one of: status, payment_method, notes');
     final r = await http.patch(
       Uri.parse('$_base/api/orders/$id'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'status': status}),
+      body: jsonEncode(body),
     );
     if (r.statusCode != 200) {
       final err = jsonDecode(r.body) as Map<String, dynamic>;

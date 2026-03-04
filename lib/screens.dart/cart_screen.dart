@@ -12,17 +12,27 @@ class CartScreen extends StatefulWidget {
   State<CartScreen> createState() => _CartScreenState();
 }
 
+final List<String> _paymentMethods = ['Cash', 'Card', 'Mobile', 'Other'];
+
 class _CartScreenState extends State<CartScreen> {
   List<Product> _products = [];
   final Map<int, int> _cart = {}; // productId -> quantity
   bool _loading = true;
   bool _placing = false;
   String? _error;
+  String? _selectedPaymentMethod;
+  final TextEditingController _notesController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _loadProducts();
+  }
+
+  @override
+  void dispose() {
+    _notesController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadProducts() async {
@@ -31,7 +41,7 @@ class _CartScreenState extends State<CartScreen> {
       _error = null;
     });
     try {
-      final list = await ApiService.getProducts();
+      final list = await ApiService.getProducts(activeOnly: true);
       if (mounted) setState(() {
         _products = list;
         _loading = false;
@@ -84,6 +94,9 @@ class _CartScreenState extends State<CartScreen> {
           .toList();
       await ApiService.createOrder(
         userId: AppState.currentUser?.id,
+        cashierId: AppState.currentUser?.id,
+        paymentMethod: _selectedPaymentMethod,
+        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
         items: items,
       );
       if (!mounted) return;
@@ -234,36 +247,77 @@ class _CartScreenState extends State<CartScreen> {
                         ],
                       ),
                       child: SafeArea(
-                        child: Row(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Expanded(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('${_cartItemCount} items', style: AppTheme.captionStyle),
-                                  Text(
-                                    '\$${_cartTotal.toStringAsFixed(2)}',
-                                    style: AppTheme.titleStyle,
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: DropdownButtonFormField<String>(
+                                    value: _selectedPaymentMethod,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Payment',
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    ),
+                                    items: [
+                                      const DropdownMenuItem(value: null, child: Text('Select method')),
+                                      ..._paymentMethods.map((m) => DropdownMenuItem(value: m, child: Text(m))),
+                                    ],
+                                    onChanged: (v) => setState(() => _selectedPaymentMethod = v),
                                   ),
-                                ],
-                              ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  flex: 2,
+                                  child: TextField(
+                                    controller: _notesController,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Notes',
+                                      hintText: 'Table, comment…',
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    ),
+                                    maxLines: 1,
+                                    onChanged: (_) => setState(() {}),
+                                  ),
+                                ),
+                              ],
                             ),
-                            FilledButton.icon(
-                              onPressed: _cart.isEmpty || _placing ? null : _placeOrder,
-                              icon: _placing
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                    )
-                                  : const Icon(Icons.check_circle_outline),
-                              label: Text(_placing ? 'Placing…' : 'Place Order'),
-                              style: FilledButton.styleFrom(
-                                backgroundColor: AppTheme.primary,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                              ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text('${_cartItemCount} items', style: AppTheme.captionStyle),
+                                      Text(
+                                        '\$${_cartTotal.toStringAsFixed(2)}',
+                                        style: AppTheme.titleStyle,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                FilledButton.icon(
+                                  onPressed: _cart.isEmpty || _placing ? null : _placeOrder,
+                                  icon: _placing
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                        )
+                                      : const Icon(Icons.check_circle_outline),
+                                  label: Text(_placing ? 'Placing…' : 'Place Order'),
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: AppTheme.primary,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),

@@ -45,17 +45,25 @@ class OrderItem {
 class Order {
   final int id;
   final int? userId;
+  final int? cashierId;
   final double total;
   final String status;
+  final String? paymentMethod;
+  final String? notes;
   final String createdAt;
+  final String? updatedAt;
   final List<OrderItem> items;
 
   const Order({
     required this.id,
     this.userId,
+    this.cashierId,
     required this.total,
     required this.status,
+    this.paymentMethod,
+    this.notes,
     required this.createdAt,
+    this.updatedAt,
     this.items = const [],
   });
 
@@ -65,9 +73,13 @@ class Order {
     return Order(
       id: _toInt(json['id']),
       userId: userIdRaw == null ? null : _toInt(userIdRaw),
+      cashierId: (json['cashier_id'] as num?)?.toInt(),
       total: _toDouble(json['total']),
       status: json['status'] as String? ?? 'pending',
+      paymentMethod: json['payment_method'] as String?,
+      notes: json['notes'] as String?,
       createdAt: json['created_at'] as String? ?? '',
+      updatedAt: json['updated_at'] as String?,
       items: itemsList != null
           ? itemsList.map((e) => OrderItem.fromJson(e as Map<String, dynamic>)).toList()
           : [],

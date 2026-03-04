@@ -152,7 +152,12 @@ class _DashboardTabState extends State<_DashboardTab> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SizedBox(height: 8),
-          Text('Dashboard', style: AppTheme.titleStyle),
+          Text('Dashboard', style: AppTheme.titleStyle.copyWith(fontSize: 26)),
+          const SizedBox(height: 8),
+          Text(
+            "Today's overview",
+            style: AppTheme.bodySecondaryStyle,
+          ),
           const SizedBox(height: 24),
           Row(
             children: [
@@ -161,6 +166,7 @@ class _DashboardTabState extends State<_DashboardTab> {
                   icon: Icons.receipt_long_rounded,
                   label: "Today's Orders",
                   value: '$count',
+                  color: AppTheme.primary,
                 ),
               ),
               const SizedBox(width: 16),
@@ -169,6 +175,7 @@ class _DashboardTabState extends State<_DashboardTab> {
                   icon: Icons.attach_money_rounded,
                   label: "Today's Revenue",
                   value: '\$${revenue.toStringAsFixed(2)}',
+                  color: AppTheme.success,
                 ),
               ),
             ],
@@ -176,12 +183,13 @@ class _DashboardTabState extends State<_DashboardTab> {
           const SizedBox(height: 32),
           FilledButton.icon(
             onPressed: widget.onNewOrder,
-            icon: const Icon(Icons.add_shopping_cart_rounded),
+            icon: const Icon(Icons.add_shopping_cart_rounded, size: 22),
             label: const Text('New Order'),
             style: FilledButton.styleFrom(
               backgroundColor: AppTheme.primary,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              padding: const EdgeInsets.symmetric(vertical: 18),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             ),
           ),
         ],
@@ -194,22 +202,37 @@ class _StatCard extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
+  final Color color;
 
-  const _StatCard({required this.icon, required this.label, required this.value});
+  const _StatCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.color = AppTheme.primary,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: AppTheme.primary, size: 28),
-            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 28),
+            ),
+            const SizedBox(height: 16),
             Text(label, style: AppTheme.captionStyle),
             const SizedBox(height: 4),
-            Text(value, style: AppTheme.titleStyle),
+            Text(value, style: AppTheme.titleStyle.copyWith(fontWeight: FontWeight.w700)),
           ],
         ),
       ),
@@ -310,12 +333,24 @@ class _OrdersTabState extends State<_OrdersTab> {
                           return Card(
                             margin: const EdgeInsets.only(bottom: 12),
                             child: ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: o.status == 'completed'
+                                    ? AppTheme.success.withOpacity(0.15)
+                                    : o.status == 'cancelled'
+                                        ? AppTheme.error.withOpacity(0.15)
+                                        : AppTheme.primary.withOpacity(0.15),
+                                child: Icon(
+                                  o.status == 'completed' ? Icons.check_rounded : o.status == 'cancelled' ? Icons.close_rounded : Icons.receipt_long_rounded,
+                                  color: o.status == 'completed' ? AppTheme.success : o.status == 'cancelled' ? AppTheme.error : AppTheme.primary,
+                                  size: 22,
+                                ),
+                              ),
                               title: Text('Order #${o.id}', style: AppTheme.bodyStyle),
                               subtitle: Text(
-                                '\$${o.total.toStringAsFixed(2)} · ${o.status}',
+                                '\$${o.total.toStringAsFixed(2)} · ${o.status}${o.paymentMethod != null ? ' · ${o.paymentMethod}' : ''}',
                                 style: AppTheme.captionStyle,
                               ),
-                              trailing: const Icon(Icons.chevron_right),
+                              trailing: const Icon(Icons.chevron_right_rounded),
                               onTap: () => Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -352,6 +387,7 @@ class _ProductsTabState extends State<_ProductsTab> {
   List<Product> _products = [];
   List<Category> _categories = [];
   int? _filterCategoryId;
+  bool _showInactive = false;
   bool _loading = true;
   String? _error;
 
@@ -374,7 +410,7 @@ class _ProductsTabState extends State<_ProductsTab> {
     });
     try {
       final results = await Future.wait([
-        ApiService.getProducts(categoryId: _filterCategoryId),
+        ApiService.getProducts(categoryId: _filterCategoryId, activeOnly: !_showInactive),
         ApiService.getCategories(),
       ]);
       if (mounted) setState(() {
@@ -471,6 +507,23 @@ class _ProductsTabState extends State<_ProductsTab> {
                         });
                       },
                     ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Row(
+                        children: [
+                          Text('Show inactive', style: AppTheme.captionStyle),
+                          const SizedBox(width: 8),
+                          Switch(
+                            value: _showInactive,
+                            onChanged: (v) => setState(() {
+                              _showInactive = v;
+                              _load();
+                            }),
+                            activeColor: AppTheme.primary,
+                          ),
+                        ],
+                      ),
+                    ),
                     Expanded(
                       child: _products.isEmpty
                           ? Center(
@@ -492,7 +545,25 @@ class _ProductsTabState extends State<_ProductsTab> {
                                   margin: const EdgeInsets.only(bottom: 12),
                                   child: ListTile(
                                     leading: _productThumbnail(p.imagePath),
-                                    title: Text(p.name, style: AppTheme.bodyStyle),
+                                    title: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(p.name, style: AppTheme.bodyStyle),
+                                        ),
+                                        if (!p.isActive)
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: AppTheme.textMuted.withOpacity(0.2),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Text(
+                                              'Inactive',
+                                              style: AppTheme.smallStyle.copyWith(color: AppTheme.textSecondary),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
                                     subtitle: Text(
                                       '\$${p.price.toStringAsFixed(2)} · Stock: ${p.stock}',
                                       style: AppTheme.captionStyle,
@@ -583,15 +654,47 @@ class _ProfileTabState extends State<_ProfileTab> {
 
   Future<void> _addCategory() async {
     final nameController = TextEditingController();
+    final descController = TextEditingController();
+    final sortController = TextEditingController(text: '0');
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('New category'),
-        content: TextField(
-          controller: nameController,
-          decoration: const InputDecoration(labelText: 'Name'),
-          autofocus: true,
-          onSubmitted: (_) => Navigator.pop(ctx, true),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Name',
+                  hintText: 'e.g. Beverages',
+                  prefixIcon: Icon(Icons.category_outlined),
+                ),
+                autofocus: true,
+                onSubmitted: (_) => Navigator.pop(ctx, true),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: descController,
+                decoration: const InputDecoration(
+                  labelText: 'Description (optional)',
+                  prefixIcon: Icon(Icons.description_outlined),
+                ),
+                maxLines: 2,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: sortController,
+                decoration: const InputDecoration(
+                  labelText: 'Sort order',
+                  hintText: '0 = first',
+                  prefixIcon: Icon(Icons.sort_rounded),
+                ),
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
@@ -606,14 +709,104 @@ class _ProfileTabState extends State<_ProfileTab> {
     if (result != true) return;
     final name = nameController.text.trim();
     if (name.isEmpty) return;
+    final sortOrder = int.tryParse(sortController.text.trim()) ?? 0;
     try {
-      await ApiService.createCategory(name);
+      await ApiService.createCategory(name, description: descController.text.trim().isEmpty ? null : descController.text.trim(), sortOrder: sortOrder);
       if (mounted) {
         AppSnackBar.success(context, 'Category added');
         _load();
       }
     } catch (e) {
       if (mounted) AppSnackBar.error(context, 'Failed: $e');
+    }
+  }
+
+  Future<void> _editCategory(Category c) async {
+    final nameController = TextEditingController(text: c.name);
+    final descController = TextEditingController(text: c.description ?? '');
+    final sortController = TextEditingController(text: '${c.sortOrder}');
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Edit category'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: 'Name', prefixIcon: Icon(Icons.category_outlined)),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: descController,
+                decoration: const InputDecoration(labelText: 'Description', prefixIcon: Icon(Icons.description_outlined)),
+                maxLines: 2,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: sortController,
+                decoration: const InputDecoration(labelText: 'Sort order', prefixIcon: Icon(Icons.sort_rounded)),
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.primary, foregroundColor: Colors.white),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    if (result != true) return;
+    final name = nameController.text.trim();
+    if (name.isEmpty) return;
+    final sortOrder = int.tryParse(sortController.text.trim()) ?? 0;
+    try {
+      await ApiService.updateCategory(c.id, name, description: descController.text.trim().isEmpty ? null : descController.text.trim(), sortOrder: sortOrder);
+      if (mounted) {
+        AppSnackBar.success(context, 'Category updated');
+        _load();
+      }
+    } catch (e) {
+      if (mounted) AppSnackBar.error(context, 'Failed: $e');
+    }
+  }
+
+  Future<void> _deleteCategory(Category c) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete category?'),
+        content: Text(
+          'Remove "${c.name}"? Products in this category will keep the category link until you change them.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.error),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    try {
+      await ApiService.deleteCategory(c.id);
+      if (mounted) {
+        AppSnackBar.success(context, 'Category deleted');
+        _load();
+      }
+    } catch (e) {
+      if (mounted) {
+        final msg = e.toString().replaceFirst('Exception: ', '');
+        AppSnackBar.error(context, msg);
+      }
     }
   }
 
@@ -647,10 +840,15 @@ class _ProfileTabState extends State<_ProfileTab> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Categories', style: AppTheme.headingStyle),
-              TextButton.icon(
+              FilledButton.icon(
                 onPressed: _addCategory,
-                icon: const Icon(Icons.add, size: 20),
-                label: const Text('Add'),
+                icon: const Icon(Icons.add_rounded, size: 20),
+                label: const Text('Add category'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                ),
               ),
             ],
           ),
@@ -663,7 +861,26 @@ class _ProfileTabState extends State<_ProfileTab> {
               ..._categories.map((c) => Card(
                     margin: const EdgeInsets.only(bottom: 8),
                     child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: AppTheme.primary.withOpacity(0.15),
+                        child: Text('${c.sortOrder}', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600, fontSize: 12)),
+                      ),
                       title: Text(c.name, style: AppTheme.bodyStyle),
+                      subtitle: c.description != null && c.description!.isNotEmpty
+                          ? Text(c.description!, style: AppTheme.captionStyle, maxLines: 1, overflow: TextOverflow.ellipsis)
+                          : null,
+                      trailing: PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert_rounded),
+                        onSelected: (value) {
+                          if (value == 'edit') _editCategory(c);
+                          if (value == 'delete') _deleteCategory(c);
+                        },
+                        itemBuilder: (_) => [
+                          const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit_outlined, size: 22), SizedBox(width: 12), Text('Edit')])),
+                          const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete_outline, size: 22, color: AppTheme.error), SizedBox(width: 12), Text('Delete', style: TextStyle(color: AppTheme.error))])),
+                        ],
+                      ),
+                      onTap: () => _editCategory(c),
                     ),
                   )),
         ],

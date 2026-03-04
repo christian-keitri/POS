@@ -16,6 +16,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   Order? _order;
   bool _loading = true;
   String? _error;
+  bool _updating = false;
 
   @override
   void initState() {
@@ -44,12 +45,78 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   Future<void> _updateStatus(String status) async {
     try {
+      setState(() => _updating = true);
       await ApiService.updateOrderStatus(widget.orderId, status);
       if (mounted) await _load();
     } catch (e) {
+      if (mounted) AppSnackBar.error(context, 'Failed: $e');
+    } finally {
+      if (mounted) setState(() => _updating = false);
+    }
+  }
+
+  Future<void> _editPaymentAndNotes() async {
+    if (_order == null) return;
+    final notesController = TextEditingController(text: _order!.notes ?? '');
+    String? selectedPayment = _order!.paymentMethod;
+    if (selectedPayment != null && selectedPayment.isEmpty) selectedPayment = null;
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('Payment & notes'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    value: selectedPayment,
+                    decoration: const InputDecoration(labelText: 'Payment method'),
+                    items: [
+                      const DropdownMenuItem(value: null, child: Text('Not set')),
+                      ...['Cash', 'Card', 'Mobile', 'Other']
+                          .map((m) => DropdownMenuItem(value: m, child: Text(m))),
+                    ],
+                    onChanged: (v) => setDialogState(() => selectedPayment = v),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: notesController,
+                    decoration: const InputDecoration(labelText: 'Notes', hintText: 'Table, comment…'),
+                    maxLines: 2,
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: FilledButton.styleFrom(backgroundColor: AppTheme.primary, foregroundColor: Colors.white),
+                child: const Text('Save'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    if (result != true || !mounted) return;
+    try {
+      setState(() => _updating = true);
+      await ApiService.updateOrder(
+        widget.orderId,
+        paymentMethod: selectedPayment,
+        notes: notesController.text.trim().isEmpty ? null : notesController.text.trim(),
+      );
       if (mounted) {
-        AppSnackBar.error(context, 'Failed: $e');
+        AppSnackBar.success(context, 'Order updated');
+        _load();
       }
+    } catch (e) {
+      if (mounted) AppSnackBar.error(context, 'Failed: $e');
+    } finally {
+      if (mounted) setState(() => _updating = false);
     }
   }
 
@@ -85,12 +152,51 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildStatusChip(_order!.status),
+                          Row(
+                            children: [
+                              _buildStatusChip(_order!.status),
+                              const Spacer(),
+                              if (_order!.status == 'pending')
+                                TextButton.icon(
+                                  onPressed: _updating ? null : _editPaymentAndNotes,
+                                  icon: const Icon(Icons.edit_outlined, size: 18),
+                                  label: const Text('Edit'),
+                                ),
+                            ],
+                          ),
                           const SizedBox(height: 8),
                           Text(
                             'Created ${_order!.createdAt}',
                             style: AppTheme.captionStyle,
                           ),
+                          if (_order!.updatedAt != null && _order!.updatedAt!.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              'Updated ${_order!.updatedAt}',
+                              style: AppTheme.captionStyle,
+                            ),
+                          ],
+                          if (_order!.paymentMethod != null && _order!.paymentMethod!.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Icon(Icons.payment_rounded, size: 18, color: AppTheme.textSecondary),
+                                const SizedBox(width: 8),
+                                Text('Payment: ${_order!.paymentMethod}', style: AppTheme.bodySecondaryStyle),
+                              ],
+                            ),
+                          ],
+                          if (_order!.notes != null && _order!.notes!.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(Icons.note_rounded, size: 18, color: AppTheme.textSecondary),
+                                const SizedBox(width: 8),
+                                Expanded(child: Text(_order!.notes!, style: AppTheme.bodySecondaryStyle)),
+                              ],
+                            ),
+                          ],
                           const SizedBox(height: 24),
                           Text('Items', style: AppTheme.titleStyle),
                           const SizedBox(height: 8),
@@ -134,20 +240,22 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                             Row(
                               children: [
                                 Expanded(
-                                  child: OutlinedButton(
-                                    onPressed: () => _updateStatus('cancelled'),
-                                    child: const Text('Cancel Order'),
+                                  child: OutlinedButton.icon(
+                                    onPressed: _updating ? null : () => _updateStatus('cancelled'),
+                                    icon: const Icon(Icons.cancel_outlined, size: 20),
+                                    label: const Text('Cancel Order'),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
-                                  child: FilledButton(
-                                    onPressed: () => _updateStatus('completed'),
+                                  child: FilledButton.icon(
+                                    onPressed: _updating ? null : () => _updateStatus('completed'),
                                     style: FilledButton.styleFrom(
                                       backgroundColor: AppTheme.primary,
                                       foregroundColor: Colors.white,
                                     ),
-                                    child: const Text('Complete'),
+                                    icon: const Icon(Icons.check_circle_outline, size: 20),
+                                    label: const Text('Complete'),
                                   ),
                                 ),
                               ],

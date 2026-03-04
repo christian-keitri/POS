@@ -21,6 +21,8 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
   final _picker = ImagePicker();
   late TextEditingController _nameController;
   late TextEditingController _skuController;
+  late TextEditingController _barcodeController;
+  late TextEditingController _descriptionController;
   late TextEditingController _priceController;
   late TextEditingController _costController;
   late TextEditingController _stockController;
@@ -28,6 +30,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
   int? _selectedCategoryId;
   bool _loading = false;
   bool _saving = false;
+  bool _isActive = true;
   /// New image picked this session (camera or gallery)
   XFile? _pickedImage;
 
@@ -39,10 +42,13 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     final p = widget.product;
     _nameController = TextEditingController(text: p?.name ?? '');
     _skuController = TextEditingController(text: p?.sku ?? '');
+    _barcodeController = TextEditingController(text: p?.barcode ?? '');
+    _descriptionController = TextEditingController(text: p?.description ?? '');
     _priceController = TextEditingController(text: p != null ? p.price.toString() : '');
     _costController = TextEditingController(text: p != null ? p.cost.toString() : '0');
     _stockController = TextEditingController(text: p != null ? p.stock.toString() : '0');
     _selectedCategoryId = p?.categoryId;
+    _isActive = p?.isActive ?? true;
     _loadCategories();
   }
 
@@ -50,6 +56,8 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
   void dispose() {
     _nameController.dispose();
     _skuController.dispose();
+    _barcodeController.dispose();
+    _descriptionController.dispose();
     _priceController.dispose();
     _costController.dispose();
     _stockController.dispose();
@@ -85,6 +93,8 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     if (!_formKey.currentState!.validate()) return;
     final name = _nameController.text.trim();
     final sku = _skuController.text.trim().isEmpty ? null : _skuController.text.trim();
+    final barcode = _barcodeController.text.trim().isEmpty ? null : _barcodeController.text.trim();
+    final description = _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim();
     final price = double.tryParse(_priceController.text);
     final cost = double.tryParse(_costController.text) ?? 0;
     final stock = int.tryParse(_stockController.text) ?? 0;
@@ -100,10 +110,13 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
           widget.product!.id,
           name: name,
           sku: sku,
+          barcode: barcode,
+          description: description,
           price: price,
           cost: cost,
           stock: stock,
           categoryId: _selectedCategoryId,
+          isActive: _isActive,
         );
         productId = widget.product!.id;
         if (mounted) AppSnackBar.success(context, 'Product updated');
@@ -111,10 +124,13 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         final created = await ApiService.createProduct(
           name: name,
           sku: sku,
+          barcode: barcode,
+          description: description,
           price: price,
           cost: cost,
           stock: stock,
           categoryId: _selectedCategoryId,
+          isActive: _isActive,
         );
         productId = created.id;
         if (mounted) AppSnackBar.success(context, 'Product created');
@@ -217,18 +233,20 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                     _buildImageSection(),
                     TextFormField(
                       controller: _nameController,
-                      decoration: const InputDecoration(labelText: 'Product name'),
+                      decoration: const InputDecoration(
+                        labelText: 'Product name',
+                        hintText: 'e.g. Espresso',
+                        prefixIcon: Icon(Icons.label_outline_rounded),
+                      ),
                       validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _skuController,
-                      decoration: const InputDecoration(labelText: 'SKU (optional)'),
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<int?>(
                       value: _selectedCategoryId,
-                      decoration: const InputDecoration(labelText: 'Category'),
+                      decoration: const InputDecoration(
+                        labelText: 'Category',
+                        prefixIcon: Icon(Icons.category_outlined),
+                      ),
                       items: [
                         const DropdownMenuItem(value: null, child: Text('None')),
                         ..._categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
@@ -236,9 +254,38 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                       onChanged: (v) => setState(() => _selectedCategoryId = v),
                     ),
                     const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _skuController,
+                            decoration: const InputDecoration(
+                              labelText: 'SKU',
+                              hintText: 'Optional',
+                              prefixIcon: Icon(Icons.qr_code_2_outlined),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _barcodeController,
+                            decoration: const InputDecoration(
+                              labelText: 'Barcode',
+                              hintText: 'Optional',
+                              prefixIcon: Icon(Icons.barcode_reader),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
                     TextFormField(
                       controller: _priceController,
-                      decoration: const InputDecoration(labelText: 'Price'),
+                      decoration: const InputDecoration(
+                        labelText: 'Price',
+                        prefixIcon: Icon(Icons.attach_money_rounded),
+                      ),
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       validator: (v) {
                         if (v == null || v.isEmpty) return 'Required';
@@ -247,16 +294,49 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                       },
                     ),
                     const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _costController,
-                      decoration: const InputDecoration(labelText: 'Cost (optional)'),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _costController,
+                            decoration: const InputDecoration(labelText: 'Cost'),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _stockController,
+                            decoration: const InputDecoration(labelText: 'Stock'),
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
-                      controller: _stockController,
-                      decoration: const InputDecoration(labelText: 'Stock'),
-                      keyboardType: TextInputType.number,
+                      controller: _descriptionController,
+                      decoration: const InputDecoration(
+                        labelText: 'Description',
+                        hintText: 'Short product description',
+                        prefixIcon: Icon(Icons.description_outlined),
+                        alignLabelWithHint: true,
+                      ),
+                      maxLines: 2,
+                    ),
+                    const SizedBox(height: 16),
+                    Card(
+                      color: AppTheme.surfaceElevated,
+                      child: SwitchListTile(
+                        title: const Text('Active', style: TextStyle(fontWeight: FontWeight.w500)),
+                        subtitle: Text(
+                          _isActive ? 'Product is visible and sellable' : 'Hidden from POS',
+                          style: AppTheme.captionStyle,
+                        ),
+                        value: _isActive,
+                        onChanged: _saving ? null : (v) => setState(() => _isActive = v),
+                        activeColor: AppTheme.primary,
+                      ),
                     ),
                     const SizedBox(height: 32),
                     FilledButton(
