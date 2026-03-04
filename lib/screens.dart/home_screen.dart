@@ -35,9 +35,12 @@ class _HomeScreenState extends State<HomeScreen> {
     NavItem(icon: Icons.person_rounded, label: 'Profile', index: 3),
   ];
 
+  void _goToOrdersTab() => setState(() => _currentIndex = 1);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.background,
       appBar: CustomAppBar.build(context, widget.userName),
       body: IndexedStack(
         index: _currentIndex,
@@ -55,6 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 });
               }
             },
+            onViewOrders: _goToOrdersTab,
           ),
           _OrdersTab(
             refreshTrigger: _refreshOrders,
@@ -86,8 +90,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
 class _DashboardTab extends StatefulWidget {
   final VoidCallback onNewOrder;
+  final VoidCallback? onViewOrders;
 
-  const _DashboardTab({required this.onNewOrder});
+  const _DashboardTab({required this.onNewOrder, this.onViewOrders});
 
   @override
   State<_DashboardTab> createState() => _DashboardTabState();
@@ -123,78 +128,163 @@ class _DashboardTabState extends State<_DashboardTab> {
     }
   }
 
+  String _greeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator(color: AppTheme.primary));
-    }
-    if (_error != null) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(_error!, style: AppTheme.bodySecondaryStyle, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            TextButton.icon(
-              onPressed: _load,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
+            const SizedBox(
+              width: 48,
+              height: 48,
+              child: CircularProgressIndicator(color: AppTheme.primary, strokeWidth: 3),
             ),
+            const SizedBox(height: 20),
+            Text('Loading dashboard…', style: AppTheme.bodySecondaryStyle),
           ],
+        ),
+      );
+    }
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.cloud_off_rounded, size: 64, color: AppTheme.textMuted),
+              const SizedBox(height: 20),
+              Text(
+                'Couldn’t load stats',
+                style: AppTheme.headingStyle,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _error!.replaceFirst('Exception: ', ''),
+                style: AppTheme.bodySecondaryStyle,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: _load,
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Try again'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
     final count = (_stats?['today_orders_count'] as num?)?.toInt() ?? 0;
     final revenue = (_stats?['today_revenue'] as num?)?.toDouble() ?? 0.0;
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const SizedBox(height: 8),
-          Text('Dashboard', style: AppTheme.titleStyle.copyWith(fontSize: 26)),
-          const SizedBox(height: 8),
-          Text(
-            "Today's overview",
-            style: AppTheme.bodySecondaryStyle,
-          ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                child: _StatCard(
-                  icon: Icons.receipt_long_rounded,
-                  label: "Today's Orders",
-                  value: '$count',
-                  color: AppTheme.primary,
+    final dateStr = _formatDate(DateTime.now());
+    return RefreshIndicator(
+      onRefresh: _load,
+      color: AppTheme.primary,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(_greeting(), style: AppTheme.captionStyle),
+            const SizedBox(height: 4),
+            Text('Dashboard', style: AppTheme.titleStyle.copyWith(fontSize: 26, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 4),
+            Text(dateStr, style: AppTheme.bodySecondaryStyle.copyWith(fontSize: 13)),
+            const SizedBox(height: 28),
+            Row(
+              children: [
+                Expanded(
+                  child: _StatCard(
+                    icon: Icons.receipt_long_rounded,
+                    label: "Today's orders",
+                    value: '$count',
+                    color: AppTheme.primary,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: _StatCard(
+                    icon: Icons.attach_money_rounded,
+                    label: "Today's revenue",
+                    value: '\$${revenue.toStringAsFixed(2)}',
+                    color: AppTheme.success,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: widget.onNewOrder,
+                  borderRadius: BorderRadius.circular(16),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primary.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(Icons.add_shopping_cart_rounded, color: AppTheme.primary, size: 28),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('New order', style: AppTheme.headingStyle),
+                              const SizedBox(height: 2),
+                              Text('Start a new sale', style: AppTheme.captionStyle),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.arrow_forward_ios_rounded, size: 16, color: AppTheme.textMuted),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _StatCard(
-                  icon: Icons.attach_money_rounded,
-                  label: "Today's Revenue",
-                  value: '\$${revenue.toStringAsFixed(2)}',
-                  color: AppTheme.success,
-                ),
+            ),
+            if (widget.onViewOrders != null) ...[
+              const SizedBox(height: 16),
+              TextButton.icon(
+                onPressed: widget.onViewOrders,
+                icon: const Icon(Icons.receipt_long_outlined, size: 20),
+                label: const Text('View all orders'),
+                style: TextButton.styleFrom(foregroundColor: AppTheme.primary),
               ),
             ],
-          ),
-          const SizedBox(height: 32),
-          FilledButton.icon(
-            onPressed: widget.onNewOrder,
-            icon: const Icon(Icons.add_shopping_cart_rounded, size: 22),
-            label: const Text('New Order'),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppTheme.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 18),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
+  }
+
+  String _formatDate(DateTime d) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return '${months[d.month - 1]} ${d.day}, ${d.year}';
   }
 }
 
@@ -215,9 +305,10 @@ class _StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       elevation: 0,
+      color: AppTheme.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -227,12 +318,12 @@ class _StatCard extends StatelessWidget {
                 color: color.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: color, size: 28),
+              child: Icon(icon, color: color, size: 26),
             ),
-            const SizedBox(height: 16),
-            Text(label, style: AppTheme.captionStyle),
+            const SizedBox(height: 14),
+            Text(label, style: AppTheme.captionStyle.copyWith(fontSize: 12)),
             const SizedBox(height: 4),
-            Text(value, style: AppTheme.titleStyle.copyWith(fontWeight: FontWeight.w700)),
+            Text(value, style: AppTheme.titleStyle.copyWith(fontWeight: FontWeight.w700, fontSize: 20)),
           ],
         ),
       ),
@@ -254,6 +345,7 @@ class _OrdersTabState extends State<_OrdersTab> {
   List<Order> _orders = [];
   bool _loading = true;
   String? _error;
+  String? _statusFilter;
 
   @override
   void initState() {
@@ -273,7 +365,7 @@ class _OrdersTabState extends State<_OrdersTab> {
       _error = null;
     });
     try {
-      final list = await ApiService.getOrders(userId: AppState.currentUser?.id);
+      final list = await ApiService.getOrders(userId: AppState.currentUser?.id, status: _statusFilter);
       if (mounted) setState(() {
         _orders = list;
         _loading = false;
@@ -286,88 +378,215 @@ class _OrdersTabState extends State<_OrdersTab> {
     }
   }
 
+  List<Order> get _filteredOrders => _orders;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.background,
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: CircularProgressIndicator(color: AppTheme.primary, strokeWidth: 3),
+                  ),
+                  const SizedBox(height: 20),
+                  Text('Loading orders…', style: AppTheme.bodySecondaryStyle),
+                ],
+              ),
+            )
           : _error != null
               ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(_error!, style: AppTheme.bodySecondaryStyle, textAlign: TextAlign.center),
-                      const SizedBox(height: 16),
-                      TextButton.icon(
-                        onPressed: _load,
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Retry'),
-                      ),
-                    ],
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error_outline_rounded, size: 64, color: AppTheme.textMuted),
+                        const SizedBox(height: 20),
+                        Text('Couldn’t load orders', style: AppTheme.headingStyle, textAlign: TextAlign.center),
+                        const SizedBox(height: 8),
+                        Text(_error!.replaceFirst('Exception: ', ''), style: AppTheme.bodySecondaryStyle, textAlign: TextAlign.center),
+                        const SizedBox(height: 24),
+                        FilledButton.icon(
+                          onPressed: _load,
+                          icon: const Icon(Icons.refresh_rounded),
+                          label: const Text('Try again'),
+                          style: FilledButton.styleFrom(backgroundColor: AppTheme.primary, foregroundColor: Colors.white),
+                        ),
+                      ],
+                    ),
                   ),
                 )
               : _orders.isEmpty
                   ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.receipt_long_rounded, size: 64, color: AppTheme.textMuted),
-                          const SizedBox(height: 16),
-                          Text('No orders yet', style: AppTheme.bodySecondaryStyle),
-                          const SizedBox(height: 8),
-                          TextButton.icon(
-                            onPressed: widget.onNewOrder,
-                            icon: const Icon(Icons.add),
-                            label: const Text('Create first order'),
-                          ),
-                        ],
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 40),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primary.withOpacity(0.08),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(Icons.receipt_long_rounded, size: 56, color: AppTheme.primary.withOpacity(0.8)),
+                            ),
+                            const SizedBox(height: 24),
+                            Text('No orders yet', style: AppTheme.headingStyle, textAlign: TextAlign.center),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Create your first order to see it here.',
+                              style: AppTheme.bodySecondaryStyle,
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 28),
+                            FilledButton.icon(
+                              onPressed: widget.onNewOrder,
+                              icon: const Icon(Icons.add_shopping_cart_rounded),
+                              label: const Text('New order'),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: AppTheme.primary,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     )
-                  : RefreshIndicator(
-                      onRefresh: _load,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _orders.length,
-                        itemBuilder: (context, i) {
-                          final o = _orders[i];
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            child: ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: o.status == 'completed'
-                                    ? AppTheme.success.withOpacity(0.15)
-                                    : o.status == 'cancelled'
-                                        ? AppTheme.error.withOpacity(0.15)
-                                        : AppTheme.primary.withOpacity(0.15),
-                                child: Icon(
-                                  o.status == 'completed' ? Icons.check_rounded : o.status == 'cancelled' ? Icons.close_rounded : Icons.receipt_long_rounded,
-                                  color: o.status == 'completed' ? AppTheme.success : o.status == 'cancelled' ? AppTheme.error : AppTheme.primary,
-                                  size: 22,
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                          child: Row(
+                            children: [
+                              Text('Orders', style: AppTheme.titleStyle.copyWith(fontSize: 22, fontWeight: FontWeight.w700)),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primary.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(20),
                                 ),
+                                child: Text('${_orders.length}', style: AppTheme.smallStyle.copyWith(color: AppTheme.primary, fontWeight: FontWeight.w600)),
                               ),
-                              title: Text('Order #${o.id}', style: AppTheme.bodyStyle),
-                              subtitle: Text(
-                                '\$${o.total.toStringAsFixed(2)} · ${o.status}${o.paymentMethod != null ? ' · ${o.paymentMethod}' : ''}',
-                                style: AppTheme.captionStyle,
-                              ),
-                              trailing: const Icon(Icons.chevron_right_rounded),
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => OrderDetailScreen(orderId: o.id),
-                                ),
-                              ).then((_) => _load()),
+                            ],
+                          ),
+                        ),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Row(
+                            children: [
+                              _FilterChip(label: 'All', selected: _statusFilter == null, onTap: () => setState(() { _statusFilter = null; _load(); })),
+                              const SizedBox(width: 8),
+                              _FilterChip(label: 'Pending', selected: _statusFilter == 'pending', onTap: () => setState(() { _statusFilter = 'pending'; _load(); })),
+                              const SizedBox(width: 8),
+                              _FilterChip(label: 'Completed', selected: _statusFilter == 'completed', onTap: () => setState(() { _statusFilter = 'completed'; _load(); })),
+                              const SizedBox(width: 8),
+                              _FilterChip(label: 'Cancelled', selected: _statusFilter == 'cancelled', onTap: () => setState(() { _statusFilter = 'cancelled'; _load(); })),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Expanded(
+                          child: RefreshIndicator(
+                            onRefresh: _load,
+                            color: AppTheme.primary,
+                            child: ListView.builder(
+                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                              itemCount: _orders.length,
+                              itemBuilder: (context, i) {
+                                final o = _orders[i];
+                                return Card(
+                                  margin: const EdgeInsets.only(bottom: 10),
+                                  elevation: 0,
+                                  color: AppTheme.surface,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                  child: ListTile(
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                    leading: CircleAvatar(
+                                      radius: 26,
+                                      backgroundColor: o.status == 'completed'
+                                          ? AppTheme.success.withOpacity(0.15)
+                                          : o.status == 'cancelled'
+                                              ? AppTheme.error.withOpacity(0.15)
+                                              : AppTheme.primary.withOpacity(0.15),
+                                      child: Icon(
+                                        o.status == 'completed' ? Icons.check_rounded : o.status == 'cancelled' ? Icons.close_rounded : Icons.receipt_long_rounded,
+                                        color: o.status == 'completed' ? AppTheme.success : o.status == 'cancelled' ? AppTheme.error : AppTheme.primary,
+                                        size: 24,
+                                      ),
+                                    ),
+                                    title: Text('Order #${o.id}', style: AppTheme.bodyStyle.copyWith(fontWeight: FontWeight.w600)),
+                                    subtitle: Text(
+                                      '\$${o.total.toStringAsFixed(2)} · ${o.status}${o.paymentMethod != null ? ' · ${o.paymentMethod}' : ''}',
+                                      style: AppTheme.captionStyle,
+                                    ),
+                                    trailing: Icon(Icons.chevron_right_rounded, color: AppTheme.textMuted),
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => OrderDetailScreen(orderId: o.id),
+                                      ),
+                                    ).then((_) => _load()),
+                                  ),
+                                );
+                              },
                             ),
-                          );
-                        },
-                      ),
+                          ),
+                        ),
+                      ],
                     ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'orders_fab',
         onPressed: widget.onNewOrder,
         backgroundColor: AppTheme.primary,
-        icon: const Icon(Icons.add),
-        label: const Text('New Order'),
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('New order'),
+      ),
+    );
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _FilterChip({required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: selected ? AppTheme.primary : AppTheme.surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: selected ? AppTheme.primary : AppTheme.border),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: selected ? Colors.white : AppTheme.textSecondary,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -478,25 +697,65 @@ class _ProductsTabState extends State<_ProductsTab> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.background,
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: CircularProgressIndicator(color: AppTheme.primary, strokeWidth: 3),
+                  ),
+                  const SizedBox(height: 20),
+                  Text('Loading products…', style: AppTheme.bodySecondaryStyle),
+                ],
+              ),
+            )
           : _error != null
               ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(_error!, style: AppTheme.bodySecondaryStyle, textAlign: TextAlign.center),
-                      const SizedBox(height: 16),
-                      TextButton.icon(
-                        onPressed: _load,
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Retry'),
-                      ),
-                    ],
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error_outline_rounded, size: 64, color: AppTheme.textMuted),
+                        const SizedBox(height: 20),
+                        Text('Couldn’t load products', style: AppTheme.headingStyle, textAlign: TextAlign.center),
+                        const SizedBox(height: 8),
+                        Text(_error!.replaceFirst('Exception: ', ''), style: AppTheme.bodySecondaryStyle, textAlign: TextAlign.center),
+                        const SizedBox(height: 24),
+                        FilledButton.icon(
+                          onPressed: _load,
+                          icon: const Icon(Icons.refresh_rounded),
+                          label: const Text('Try again'),
+                          style: FilledButton.styleFrom(backgroundColor: AppTheme.primary, foregroundColor: Colors.white),
+                        ),
+                      ],
+                    ),
                   ),
                 )
               : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                      child: Row(
+                        children: [
+                          Text('Products', style: AppTheme.titleStyle.copyWith(fontSize: 22, fontWeight: FontWeight.w700)),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primary.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text('${_products.length}', style: AppTheme.smallStyle.copyWith(color: AppTheme.primary, fontWeight: FontWeight.w600)),
+                          ),
+                        ],
+                      ),
+                    ),
                     CategoryPills(
                       categories: _categories,
                       selectedCategoryId: _filterCategoryId,
@@ -511,6 +770,8 @@ class _ProductsTabState extends State<_ProductsTab> {
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       child: Row(
                         children: [
+                          Icon(Icons.visibility_outlined, size: 18, color: AppTheme.textSecondary),
+                          const SizedBox(width: 6),
                           Text('Show inactive', style: AppTheme.captionStyle),
                           const SizedBox(width: 8),
                           Switch(
@@ -527,23 +788,62 @@ class _ProductsTabState extends State<_ProductsTab> {
                     Expanded(
                       child: _products.isEmpty
                           ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.inventory_2_rounded, size: 64, color: AppTheme.textMuted),
-                                  const SizedBox(height: 16),
-                                  Text('No products', style: AppTheme.bodySecondaryStyle),
-                                ],
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 40),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(24),
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.primary.withOpacity(0.08),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(Icons.inventory_2_rounded, size: 56, color: AppTheme.primary.withOpacity(0.8)),
+                                    ),
+                                    const SizedBox(height: 24),
+                                    Text('No products', style: AppTheme.headingStyle, textAlign: TextAlign.center),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      _filterCategoryId != null
+                                          ? 'No products in this category.'
+                                          : 'Add your first product to get started.',
+                                      style: AppTheme.bodySecondaryStyle,
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 28),
+                                    FilledButton.icon(
+                                      onPressed: () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(builder: (_) => const ProductFormScreen()),
+                                      ).then((_) {
+                                        widget.onProductSaved?.call();
+                                        _load();
+                                      }),
+                                      icon: const Icon(Icons.add_rounded),
+                                      label: const Text('Add product'),
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor: AppTheme.primary,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             )
                           : ListView.builder(
-                              padding: const EdgeInsets.all(16),
+                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
                               itemCount: _products.length,
                               itemBuilder: (context, i) {
                                 final p = _products[i];
                                 return Card(
-                                  margin: const EdgeInsets.only(bottom: 12),
+                                  margin: const EdgeInsets.only(bottom: 10),
+                                  elevation: 0,
+                                  color: AppTheme.surface,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                                   child: ListTile(
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                     leading: _productThumbnail(p.imagePath),
                                     title: Row(
                                       children: [
@@ -615,8 +915,8 @@ class _ProductsTabState extends State<_ProductsTab> {
           _load();
         }),
         backgroundColor: AppTheme.primary,
-        icon: const Icon(Icons.add),
-        label: const Text('Add Product'),
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Add product'),
       ),
     );
   }
@@ -813,46 +1113,79 @@ class _ProfileTabState extends State<_ProfileTab> {
   @override
   Widget build(BuildContext context) {
     final user = AppState.currentUser;
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text('Profile', style: AppTheme.titleStyle),
-          const SizedBox(height: 24),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(user?.email ?? '—', style: AppTheme.bodyStyle),
-                  if (user?.businessName != null) ...[
-                    const SizedBox(height: 4),
-                    Text(user!.businessName!, style: AppTheme.captionStyle),
+    return Container(
+      color: AppTheme.background,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Profile', style: AppTheme.titleStyle.copyWith(fontSize: 26, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 8),
+            Text('Account & settings', style: AppTheme.bodySecondaryStyle),
+            const SizedBox(height: 24),
+            Card(
+              elevation: 0,
+              color: AppTheme.surface,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 32,
+                      backgroundColor: AppTheme.primary.withOpacity(0.15),
+                      child: Text(
+                        (user?.displayName ?? '?').isNotEmpty ? (user!.displayName[0].toUpperCase()) : '?',
+                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: AppTheme.primary),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(user?.displayName ?? 'Guest', style: AppTheme.headingStyle),
+                          const SizedBox(height: 2),
+                          Text(user?.email ?? '—', style: AppTheme.captionStyle),
+                          if (user?.businessName != null && user!.businessName!.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(user.businessName!, style: AppTheme.smallStyle),
+                          ],
+                        ],
+                      ),
+                    ),
                   ],
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Categories', style: AppTheme.headingStyle),
-              FilledButton.icon(
-                onPressed: _addCategory,
-                icon: const Icon(Icons.add_rounded, size: 20),
-                label: const Text('Add category'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 ),
               ),
-            ],
-          ),
-          if (_loading)
+            ),
+            const SizedBox(height: 28),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Categories', style: AppTheme.headingStyle),
+                    const SizedBox(height: 2),
+                    Text('Manage product categories', style: AppTheme.captionStyle.copyWith(fontSize: 12)),
+                  ],
+                ),
+                FilledButton.icon(
+                  onPressed: _addCategory,
+                  icon: const Icon(Icons.add_rounded, size: 20),
+                  label: const Text('Add'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (_loading)
             const Padding(
               padding: EdgeInsets.all(24),
               child: Center(child: CircularProgressIndicator(color: AppTheme.primary)),
@@ -860,17 +1193,22 @@ class _ProfileTabState extends State<_ProfileTab> {
             else
               ..._categories.map((c) => Card(
                     margin: const EdgeInsets.only(bottom: 8),
+                    elevation: 0,
+                    color: AppTheme.surface,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       leading: CircleAvatar(
+                        radius: 22,
                         backgroundColor: AppTheme.primary.withOpacity(0.15),
                         child: Text('${c.sortOrder}', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600, fontSize: 12)),
                       ),
-                      title: Text(c.name, style: AppTheme.bodyStyle),
+                      title: Text(c.name, style: AppTheme.bodyStyle.copyWith(fontWeight: FontWeight.w500)),
                       subtitle: c.description != null && c.description!.isNotEmpty
                           ? Text(c.description!, style: AppTheme.captionStyle, maxLines: 1, overflow: TextOverflow.ellipsis)
                           : null,
                       trailing: PopupMenuButton<String>(
-                        icon: const Icon(Icons.more_vert_rounded),
+                        icon: const Icon(Icons.more_vert_rounded, size: 22),
                         onSelected: (value) {
                           if (value == 'edit') _editCategory(c);
                           if (value == 'delete') _deleteCategory(c);
@@ -883,7 +1221,8 @@ class _ProfileTabState extends State<_ProfileTab> {
                       onTap: () => _editCategory(c),
                     ),
                   )),
-        ],
+          ],
+        ),
       ),
     );
   }
