@@ -27,20 +27,25 @@ const upload = multer({
   },
 });
 
-// GET all products (optional ?category_id=)
+// GET all products (optional ?category_id=, ?active_only=1)
 router.get('/', (req, res) => {
   try {
-    const { category_id } = req.query;
+    const { category_id, active_only } = req.query;
     let sql = `
       SELECT p.*, c.name as category_name
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
     `;
     const params = [];
+    const conditions = [];
     if (category_id) {
-      sql += ' WHERE p.category_id = ?';
+      conditions.push('p.category_id = ?');
       params.push(category_id);
     }
+    if (active_only === '1' || active_only === 'true') {
+      conditions.push('(p.is_active = 1 OR p.is_active IS NULL)');
+    }
+    if (conditions.length) sql += ' WHERE ' + conditions.join(' AND ');
     sql += ' ORDER BY p.name';
     const products = db.prepare(sql).all(...params);
     res.json(products);
@@ -68,24 +73,27 @@ router.get('/:id', (req, res) => {
 // POST create product
 router.post('/', (req, res) => {
   try {
-    const { name, sku, price, cost, stock, category_id } = req.body;
+    const { name, sku, barcode, description, price, cost, stock, category_id, is_active } = req.body;
     if (!name || price == null) {
       return res.status(400).json({ error: 'name and price are required' });
     }
     const stmt = db.prepare(`
-      INSERT INTO products (name, sku, price, cost, stock, category_id, image_path)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO products (name, sku, barcode, description, price, cost, stock, category_id, image_path, is_active)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     const result = stmt.run(
       name,
       sku || null,
+      barcode?.trim() || null,
+      description?.trim() || null,
       Number(price),
       cost != null ? Number(cost) : 0,
       stock != null ? Number(stock) : 0,
       category_id || null,
-      null
+      null,
+      is_active !== undefined && is_active !== null ? (is_active ? 1 : 0) : 1
     );
-    const product = db.prepare('SELECT * FROM products WHERE id = ?').get(result.lastInsertRowid);
+    const product = db.prepare('SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?').get(result.lastInsertRowid);
     res.status(201).json(product);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -120,7 +128,7 @@ router.post('/:id/image', upload.single('image'), (req, res) => {
 // PUT update product
 router.put('/:id', (req, res) => {
   try {
-    const { name, sku, price, cost, stock, category_id } = req.body;
+    const { name, sku, barcode, description, price, cost, stock, category_id, is_active } = req.body;
     const id = req.params.id;
     const existing = db.prepare('SELECT * FROM products WHERE id = ?').get(id);
     if (!existing) return res.status(404).json({ error: 'Product not found' });
@@ -128,21 +136,24 @@ router.put('/:id', (req, res) => {
     const updates = {
       name: name !== undefined ? name : existing.name,
       sku: sku !== undefined ? sku : existing.sku,
+      barcode: barcode !== undefined ? (barcode?.trim() || null) : existing.barcode,
+      description: description !== undefined ? (description?.trim() || null) : existing.description,
       price: price != null ? Number(price) : existing.price,
       cost: cost != null ? Number(cost) : existing.cost,
       stock: stock != null ? Number(stock) : existing.stock,
       category_id: category_id !== undefined ? category_id : existing.category_id,
+      is_active: is_active !== undefined && is_active !== null ? (is_active ? 1 : 0) : (existing.is_active ?? 1),
     };
 
     db.prepare(`
       UPDATE products
-      SET name = ?, sku = ?, price = ?, cost = ?, stock = ?, category_id = ?,
+      SET name = ?, sku = ?, barcode = ?, description = ?, price = ?, cost = ?, stock = ?, category_id = ?, is_active = ?,
           updated_at = datetime('now')
       WHERE id = ?
-    `).run(updates.name, updates.sku, updates.price, updates.cost, updates.stock, updates.category_id, id);
+    `).run(updates.name, updates.sku, updates.barcode, updates.description, updates.price, updates.cost, updates.stock, updates.category_id, updates.is_active, id);
     // image_path is updated via POST /:id/image
 
-    const product = db.prepare('SELECT * FROM products WHERE id = ?').get(id);
+    const product = db.prepare('SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?').get(id);
     res.json(product);
   } catch (err) {
     res.status(500).json({ error: err.message });

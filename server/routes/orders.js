@@ -66,15 +66,18 @@ router.get('/:id', (req, res) => {
   }
 });
 
-// POST create order (body: { user_id?, items: [{ product_id, quantity }] })
+// POST create order (body: { user_id?, cashier_id?, payment_method?, notes?, items: [{ product_id, quantity }] })
 router.post('/', (req, res) => {
   try {
-    const { user_id, items } = req.body;
+    const { user_id, cashier_id, payment_method, notes, items } = req.body;
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'items array with product_id and quantity is required' });
     }
 
-    const insertOrder = db.prepare('INSERT INTO orders (user_id, total, status) VALUES (?, 0, ?)');
+    const insertOrder = db.prepare(`
+      INSERT INTO orders (user_id, cashier_id, total, status, payment_method, notes)
+      VALUES (?, ?, 0, ?, ?, ?)
+    `);
     const insertItem = db.prepare(`
       INSERT INTO order_items (order_id, product_id, quantity, unit_price, subtotal)
       VALUES (?, ?, ?, ?, ?)
@@ -100,7 +103,13 @@ router.post('/', (req, res) => {
     }
 
     const run = db.transaction(() => {
-      const orderResult = insertOrder.run(user_id != null ? String(user_id) : null, 'pending');
+      const orderResult = insertOrder.run(
+        user_id != null ? String(user_id) : null,
+        cashier_id != null ? Number(cashier_id) : null,
+        'pending',
+        payment_method?.trim() || null,
+        notes?.trim() || null
+      );
       const orderId = Number(orderResult.lastInsertRowid);
       for (const item of items) {
         const productId = Number(item.product_id);
@@ -128,16 +137,36 @@ router.post('/', (req, res) => {
   }
 });
 
-// PATCH order status (e.g. complete or cancel)
+// PATCH order (status, payment_method, notes)
 router.patch('/:id', (req, res) => {
   try {
-    const { status } = req.body;
-    if (!status || !['pending', 'completed', 'cancelled'].includes(status)) {
-      return res.status(400).json({ error: 'status must be pending, completed, or cancelled' });
+    const { status, payment_method, notes } = req.body;
+    const id = req.params.id;
+    const existing = db.prepare('SELECT * FROM orders WHERE id = ?').get(id);
+    if (!existing) return res.status(404).json({ error: 'Order not found' });
+
+    const updates = [];
+    const params = [];
+    if (status && ['pending', 'completed', 'cancelled'].includes(status)) {
+      updates.push('status = ?');
+      params.push(status);
     }
-    const result = db.prepare('UPDATE orders SET status = ? WHERE id = ?').run(status, req.params.id);
+    if (payment_method !== undefined) {
+      updates.push('payment_method = ?');
+      params.push(payment_method?.trim() || null);
+    }
+    if (notes !== undefined) {
+      updates.push('notes = ?');
+      params.push(notes?.trim() || null);
+    }
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'Provide at least one of: status, payment_method, notes' });
+    }
+    updates.push("updated_at = datetime('now')");
+    params.push(id);
+    const result = db.prepare(`UPDATE orders SET ${updates.join(', ')} WHERE id = ?`).run(...params);
     if (result.changes === 0) return res.status(404).json({ error: 'Order not found' });
-    const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
+    const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(id);
     res.json(order);
   } catch (err) {
     res.status(500).json({ error: err.message });
