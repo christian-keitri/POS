@@ -55,8 +55,9 @@ class _AdminShellState extends State<AdminShell> {
             child: Material(
               color: AppTheme.background,
               child: Router(
-                routerDelegate: _router.routerDelegate,
+                routeInformationProvider: _router.routeInformationProvider,
                 routeInformationParser: _router.routeInformationParser,
+                routerDelegate: _router.routerDelegate,
               ),
             ),
           ),
