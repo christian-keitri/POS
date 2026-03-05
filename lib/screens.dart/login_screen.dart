@@ -5,6 +5,7 @@ import 'package:pos/config/api_config.dart';
 import 'package:pos/core/app_state.dart';
 import 'package:pos/models/user.dart';
 import 'package:pos/theme/app_theme.dart';
+import 'package:pos/admin/admin_shell.dart';
 import 'package:pos/screens.dart/home_screen.dart';
 import 'package:pos/screens.dart/signup_screen.dart';
 
@@ -41,12 +42,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (response.statusCode == 200) {
         final userData = jsonDecode(response.body) as Map<String, dynamic>;
-        AppState.currentUser = User.fromJson(userData);
+        final user = User.fromJson(userData);
+        AppState.currentUser = user;
         if (!mounted) return;
+        final role = user.role.toLowerCase();
+        final goToAdmin = role == 'admin' || role == 'manager';
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (_) => const HomeScreen(title: 'POS'),
+            builder: (_) => goToAdmin
+                ? const AdminShell()
+                : const HomeScreen(title: 'POS'),
           ),
         );
       } else {
