@@ -22,6 +22,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   List<Product>? _lowStockProducts;
   int? _userCount;
   SalesReport? _salesReport;
+  SalesReport? _salesReportWeekly;
+  SalesReport? _salesReportMonthly;
   Map<String, dynamic>? _revenueAnalytics;
 
   @override
@@ -41,6 +43,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         ApiService.getLowStockAlerts(),
         ApiService.getUsers(),
         ApiService.getSalesReport(period: 'daily'),
+        ApiService.getSalesReport(period: 'weekly'),
+        ApiService.getSalesReport(period: 'monthly'),
         ApiService.getRevenueAnalytics(period: 'daily', days: 14)
             .catchError((_) => <String, dynamic>{}),
       ]);
@@ -51,7 +55,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         _lowStockProducts = results[1] as List<Product>;
         _userCount = (results[2] as List).length;
         _salesReport = results[3] as SalesReport;
-        _revenueAnalytics = results[4] as Map<String, dynamic>?;
+        _salesReportWeekly = results[4] as SalesReport;
+        _salesReportMonthly = results[5] as SalesReport;
+        _revenueAnalytics = results[6] as Map<String, dynamic>?;
         _loading = false;
       });
     } catch (e) {
@@ -124,10 +130,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
                 // Quick stats
                 _QuickStats(
-                  orderStats: _orderStats,
                   lowStockCount: _lowStockProducts?.length ?? 0,
                   userCount: _userCount ?? 0,
-                  salesReport: _salesReport,
+                  salesReportDaily: _salesReport,
+                  salesReportWeekly: _salesReportWeekly,
+                  salesReportMonthly: _salesReportMonthly,
                 ),
                 const SizedBox(height: 24),
 
@@ -192,50 +199,66 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 }
 
 class _QuickStats extends StatelessWidget {
-  final Map<String, dynamic>? orderStats;
   final int lowStockCount;
   final int userCount;
-  final SalesReport? salesReport;
+  final SalesReport? salesReportDaily;
+  final SalesReport? salesReportWeekly;
+  final SalesReport? salesReportMonthly;
 
   const _QuickStats({
-    this.orderStats,
     required this.lowStockCount,
     required this.userCount,
-    this.salesReport,
+    this.salesReportDaily,
+    this.salesReportWeekly,
+    this.salesReportMonthly,
   });
 
   @override
   Widget build(BuildContext context) {
-    final dailyRevenue = salesReport?.totalRevenue ?? 0.0;
-    final weeklyRevenue = (orderStats?['total_revenue'] as num?)?.toDouble() ?? 0.0;
-    final monthlyRevenue = weeklyRevenue * 4; // placeholder
+    final dailyRevenue = salesReportDaily?.totalRevenue ?? 0.0;
+    final weeklyRevenue = salesReportWeekly?.totalRevenue ?? 0.0;
+    final monthlyRevenue = salesReportMonthly?.totalRevenue ?? 0.0;
 
     final stats = [
       _StatItem('Daily sales', '\$${dailyRevenue.toStringAsFixed(2)}', Icons.today_rounded, AppTheme.primary),
       _StatItem('Weekly sales', '\$${weeklyRevenue.toStringAsFixed(2)}', Icons.date_range_rounded, AppTheme.primaryDark),
-      _StatItem('Monthly (est.)', '\$${monthlyRevenue.toStringAsFixed(2)}', Icons.calendar_month_rounded, AppTheme.textSecondary),
+      _StatItem('Monthly (est.)', '\$${monthlyRevenue.toStringAsFixed(2)}', Icons.calendar_month_rounded, AppTheme.primary),
       _StatItem('Low stock items', '$lowStockCount', Icons.inventory_2_outlined, lowStockCount > 0 ? AppTheme.error : AppTheme.success),
       _StatItem('Active users', '$userCount', Icons.people_rounded, AppTheme.success),
     ];
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth < 500) {
+        final width = constraints.maxWidth;
+        final isNarrow = width < 600;
+
+        if (isNarrow) {
+          // Single column: cards stack vertically with consistent spacing
           return Column(
-            children: stats.map((s) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _StatCard(item: s),
-            )).toList(),
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (int i = 0; i < stats.length; i++) ...[
+                _StatCard(item: stats[i]),
+                if (i < stats.length - 1) const SizedBox(height: 12),
+              ],
+            ],
           );
         }
-        return GridView.count(
+
+        // Tablet/desktop: responsive grid
+        final crossAxisCount = width > 900 ? 3 : 2;
+        final spacing = 16.0;
+        return GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: constraints.maxWidth > 900 ? 5 : (constraints.maxWidth > 600 ? 3 : 2),
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 1.6,
-          children: stats.map((s) => _StatCard(item: s)).toList(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            mainAxisSpacing: spacing,
+            crossAxisSpacing: spacing,
+            childAspectRatio: 1.35,
+          ),
+          itemCount: stats.length,
+          itemBuilder: (context, index) => _StatCard(item: stats[index]),
         );
       },
     );
@@ -261,21 +284,31 @@ class _StatCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(item.icon, color: item.color, size: 28),
-            const SizedBox(height: 8),
-            Text(
-              item.value,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
-                  ),
-            ),
-            Text(
-              item.label,
-              style: AppTheme.captionStyle,
+            Icon(item.icon, color: item.color, size: 32),
+            const SizedBox(height: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.value,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary,
+                      ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  item.label,
+                  style: AppTheme.captionStyle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
           ],
         ),
@@ -302,6 +335,7 @@ class _SalesChartCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
@@ -313,7 +347,7 @@ class _SalesChartCard extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             SizedBox(
-              height: 220,
+              height: 240,
               child: LineChart(
                 LineChartData(
                   gridData: FlGridData(show: true, drawVerticalLine: false),
@@ -394,6 +428,7 @@ class _PaymentPieCard extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
@@ -404,7 +439,10 @@ class _PaymentPieCard extends StatelessWidget {
                     ),
               ),
               const SizedBox(height: 24),
-              const Center(child: Text('No data')),
+              const SizedBox(
+                height: 220,
+                child: Center(child: Text('No data')),
+              ),
             ],
           ),
         ),
@@ -431,6 +469,7 @@ class _PaymentPieCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
@@ -442,7 +481,7 @@ class _PaymentPieCard extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             SizedBox(
-              height: 200,
+              height: 220,
               child: PieChart(
                 PieChartData(
                   sections: sections,
