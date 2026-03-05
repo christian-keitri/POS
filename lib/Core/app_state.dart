@@ -4,5 +4,6 @@ import 'package:pos/models/user.dart';
 
 class AppState {
   static User? currentUser;
+  static String? authToken;
 }
 

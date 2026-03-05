@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:pos/models/order.dart';
 import 'package:pos/services/api_service.dart';
 import 'package:pos/theme/app_theme.dart';
-import 'package:pos/screens.dart/cart_screen.dart';
+import 'package:pos/screens/cart_screen.dart';
 
 // 2026 POS order detail palette: soft neutrals + vibrant accent
 const Color _neutralBg = Color(0xFFF0F2F5);
@@ -134,7 +134,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         },
       ),
     );
-    if (result != true || !mounted) return;
+    if (result != true || !mounted) {
+      notesController.dispose();
+      return;
+    }
     try {
       setState(() => _updating = true);
       await ApiService.updateOrder(
@@ -149,6 +152,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     } catch (e) {
       if (mounted) AppSnackBar.error(context, 'Failed: $e');
     } finally {
+      notesController.dispose();
       if (mounted) setState(() => _updating = false);
     }
   }

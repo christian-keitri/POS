@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:pos/services/api_service.dart';
 import 'package:pos/models/product.dart';
 import 'package:pos/models/reports.dart';
-import 'package:pos/core/app_state.dart';
+import 'package:pos/Core/app_state.dart';
 
 /// Example state management for the admin dashboard using [ChangeNotifier].
 /// Register above [AdminShell] with [ChangeNotifierProvider] and use

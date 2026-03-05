@@ -12,3 +12,22 @@ String productImageUrl(String? imagePath) {
   final base = apiBaseUrl.endsWith('/') ? apiBaseUrl : '$apiBaseUrl/';
   return '${base}uploads/$imagePath';
 }
+
+/// Returns a user-friendly message for API/connection errors.
+/// Use when catching errors from ApiService so users see how to fix connection issues.
+String apiErrorMessage(Object error) {
+  final msg = error.toString().toLowerCase();
+  final isConnection = msg.contains('connection') ||
+      msg.contains('failed host lookup') ||
+      msg.contains('network is unreachable') ||
+      msg.contains('socket') ||
+      msg.contains('connection refused') ||
+      msg.contains('connection reset');
+  if (isConnection) {
+    return 'Cannot reach the server at $apiBaseUrl.\n\n'
+        '• Make sure the POS server is running (e.g. node server or npm start).\n'
+        '• To use a different URL, set API_BASE_URL when building:\n'
+        '  flutter run --dart-define=API_BASE_URL=http://YOUR_IP:3000';
+  }
+  return error.toString();
+}

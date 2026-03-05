@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:pos/Core/custom_app_bar.dart';
 import 'package:pos/Core/custom_bottom_nav.dart';
-import 'package:pos/core/app_state.dart';
+import 'package:pos/Core/app_state.dart';
 import 'package:pos/models/category.dart';
 import 'package:pos/models/order.dart';
 import 'package:pos/models/product.dart';
 import 'package:pos/services/api_service.dart';
-import 'package:pos/screens.dart/cart_screen.dart';
-import 'package:pos/screens.dart/order_detail_screen.dart';
+import 'package:pos/screens/cart_screen.dart';
+import 'package:pos/screens/order_detail_screen.dart';
 import 'package:pos/config/api_config.dart';
-import 'package:pos/screens.dart/product_form_screen.dart';
+import 'package:pos/screens/product_form_screen.dart';
 import 'package:pos/theme/app_theme.dart';
 import 'package:pos/widgets/category_pills.dart';
 

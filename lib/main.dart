@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pos/theme/app_theme.dart';
-import 'package:pos/screens.dart/splash_screen.dart';
+import 'package:pos/screens/splash_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

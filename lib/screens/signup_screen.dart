@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:pos/config/api_config.dart';
 import 'package:pos/theme/app_theme.dart';
-import 'package:pos/screens.dart/login_screen.dart';
+import 'package:pos/screens/login_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -289,3 +289,4 @@ class _RoleChip extends StatelessWidget {
     );
   }
 }
+

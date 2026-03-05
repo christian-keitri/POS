@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pos/admin/admin_router.dart';
-import 'package:pos/screens.dart/home_screen.dart';
+import 'package:pos/screens/home_screen.dart';
 import 'package:pos/theme/app_theme.dart';
 
 /// Responsive admin shell: Drawer on mobile, NavigationRail on tablet/desktop.
@@ -21,47 +21,46 @@ class _AdminShellState extends State<AdminShell> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.themeData,
-      home: Scaffold(
-        key: _scaffoldKey,
-        appBar: AppBar(
-          title: const Text('Admin Panel'),
-          backgroundColor: AppTheme.appBarBackground,
-          foregroundColor: Colors.white,
-          leading: _useRail
-              ? null
-              : IconButton(
-                  icon: const Icon(Icons.menu),
-                  onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+    return Scaffold(
+      key: _scaffoldKey,
+      appBar: AppBar(
+        title: const Text('Admin Panel'),
+        backgroundColor: AppTheme.appBarBackground,
+        foregroundColor: Colors.white,
+        leading: _useRail
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+              ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.exit_to_app_rounded),
+            tooltip: 'Back to POS',
+            onPressed: () {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (_) => const HomeScreen(title: 'POS'),
                 ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.exit_to_app_rounded),
-              tooltip: 'Back to POS',
-              onPressed: () {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(
-                    builder: (_) => const HomeScreen(title: 'POS'),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-        drawer: _useRail ? null : _buildDrawer(context),
-        body: Row(
-          children: [
-            if (_useRail) _buildRail(context),
-            Expanded(
+              );
+            },
+          ),
+        ],
+      ),
+      drawer: _useRail ? null : _buildDrawer(context),
+      body: Row(
+        children: [
+          if (_useRail) _buildRail(context),
+          Expanded(
+            child: Material(
+              color: AppTheme.background,
               child: Router(
                 routerDelegate: _router.routerDelegate,
                 routeInformationParser: _router.routeInformationParser,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

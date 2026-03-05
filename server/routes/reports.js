@@ -112,7 +112,7 @@ router.get('/inventory', (req, res) => {
     }
 
     if (low_stock_only === '1' || low_stock_only === 'true') {
-      sql += ' AND p.stock <= p.low_stock_threshold';
+      sql += ' AND p.stock <= COALESCE(p.low_stock_threshold, 10)';
     }
 
     sql += ' ORDER BY stock_value DESC';

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:pos/theme/app_theme.dart';
+import 'package:pos/config/api_config.dart';
 import 'package:pos/services/api_service.dart';
 import 'package:pos/models/order.dart';
 import 'package:pos/models/user.dart';
-import 'package:pos/screens.dart/order_detail_screen.dart';
+import 'package:pos/screens/order_detail_screen.dart';
 
 /// Sales management: list transactions, filters (date, user, product), edit/void, receipts.
 class AdminSalesScreen extends StatefulWidget {
@@ -35,21 +36,23 @@ class _AdminSalesScreenState extends State<AdminSalesScreen> {
       _error = null;
     });
     try {
-      final orders = await ApiService.getOrders(
-        userId: _userIdFilter,
-        status: _statusFilter,
-      );
-      final users = await ApiService.getUsers();
+      final results = await Future.wait([
+        ApiService.getOrders(
+          userId: _userIdFilter,
+          status: _statusFilter,
+        ),
+        ApiService.getUsers(),
+      ]);
       if (!mounted) return;
       setState(() {
-        _orders = orders;
-        _users = users;
+        _orders = results[0] as List<Order>;
+        _users = results[1] as List<User>;
         _loading = false;
       });
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = e.toString();
+          _error = apiErrorMessage(e);
           _loading = false;
         });
       }
@@ -279,15 +282,16 @@ class _ErrorView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline_rounded, size: 48, color: AppTheme.error),
+            Icon(Icons.cloud_off_rounded, size: 48, color: AppTheme.error),
             const SizedBox(height: 16),
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
+            Text(message, textAlign: TextAlign.center, style: const TextStyle(color: AppTheme.textPrimary)),
+            const SizedBox(height: 24),
             FilledButton.icon(onPressed: onRetry, icon: const Icon(Icons.refresh), label: const Text('Retry')),
           ],
         ),

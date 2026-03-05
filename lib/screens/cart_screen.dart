@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pos/config/api_config.dart';
-import 'package:pos/core/app_state.dart';
+import 'package:pos/Core/app_state.dart';
 import 'package:pos/models/product.dart';
 import 'package:pos/services/api_service.dart';
 import 'package:pos/theme/app_theme.dart';
@@ -59,8 +59,13 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   void _addToCart(Product p, [int qty = 1]) {
+    final currentQty = _cart[p.id] ?? 0;
+    if (currentQty + qty > p.stock) {
+      AppSnackBar.error(context, '${p.name} only has ${p.stock} in stock');
+      return;
+    }
     setState(() {
-      _cart[p.id] = (_cart[p.id] ?? 0) + qty;
+      _cart[p.id] = currentQty + qty;
     });
   }
 
@@ -144,96 +149,105 @@ class _CartScreenState extends State<CartScreen> {
               : Column(
                   children: [
                     Expanded(
-                      child: GridView.builder(
-                        padding: const EdgeInsets.all(16),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          childAspectRatio: 0.85,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                        ),
-                        itemCount: _products.length,
-                        itemBuilder: (context, i) {
-                          final p = _products[i];
-                          final qty = _cart[p.id] ?? 0;
-                          return Card(
-                            clipBehavior: Clip.antiAlias,
-                            child: InkWell(
-                              onTap: () => _addToCart(p),
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    if (p.imagePath != null && p.imagePath!.isNotEmpty)
-                                      ClipRRect(
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: Image.network(
-                                          productImageUrl(p.imagePath),
-                                          height: 56,
-                                          width: double.infinity,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (_, _, _) => const SizedBox.shrink(),
-                                        ),
-                                      )
-                                    else
-                                      Container(
-                                        height: 56,
-                                        decoration: BoxDecoration(
-                                          color: AppTheme.border,
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        child: Icon(Icons.inventory_2_rounded, color: AppTheme.textMuted, size: 32),
-                                      ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      p.name,
-                                      style: AppTheme.headingStyle,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    Row(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final crossAxisCount = constraints.maxWidth > 900
+                              ? 4
+                              : constraints.maxWidth > 600
+                                  ? 3
+                                  : 2;
+                          return GridView.builder(
+                            padding: const EdgeInsets.all(16),
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: crossAxisCount,
+                              childAspectRatio: 0.85,
+                              crossAxisSpacing: 12,
+                              mainAxisSpacing: 12,
+                            ),
+                            itemCount: _products.length,
+                            itemBuilder: (context, i) {
+                              final p = _products[i];
+                              final qty = _cart[p.id] ?? 0;
+                              return Card(
+                                clipBehavior: Clip.antiAlias,
+                                child: InkWell(
+                                  onTap: () => _addToCart(p),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(12),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Text(
-                                          '\$${p.price.toStringAsFixed(2)}',
-                                          style: AppTheme.titleStyle.copyWith(color: AppTheme.primary),
-                                        ),
-                                        if (qty > 0)
-                                          Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              IconButton.filled(
-                                                style: IconButton.styleFrom(
-                                                  padding: const EdgeInsets.all(4),
-                                                  minimumSize: const Size(32, 32),
-                                                  backgroundColor: AppTheme.primary.withValues(alpha: 0.2),
-                                                ),
-                                                onPressed: () => _removeFromCart(p.id),
-                                                icon: const Icon(Icons.remove, size: 18),
-                                              ),
-                                              Padding(
-                                                padding: const EdgeInsets.symmetric(horizontal: 8),
-                                                child: Text('$qty', style: AppTheme.headingStyle),
-                                              ),
-                                              IconButton.filled(
-                                                style: IconButton.styleFrom(
-                                                  padding: const EdgeInsets.all(4),
-                                                  minimumSize: const Size(32, 32),
-                                                  backgroundColor: AppTheme.primary.withValues(alpha: 0.2),
-                                                ),
-                                                onPressed: () => _addToCart(p),
-                                                icon: const Icon(Icons.add, size: 18),
-                                              ),
-                                            ],
+                                        if (p.imagePath != null && p.imagePath!.isNotEmpty)
+                                          ClipRRect(
+                                            borderRadius: BorderRadius.circular(8),
+                                            child: Image.network(
+                                              productImageUrl(p.imagePath),
+                                              height: 56,
+                                              width: double.infinity,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                                            ),
+                                          )
+                                        else
+                                          Container(
+                                            height: 56,
+                                            decoration: BoxDecoration(
+                                              color: AppTheme.border,
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Icon(Icons.inventory_2_rounded, color: AppTheme.textMuted, size: 32),
                                           ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          p.name,
+                                          style: AppTheme.headingStyle,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              '\$${p.price.toStringAsFixed(2)}',
+                                              style: AppTheme.titleStyle.copyWith(color: AppTheme.primary),
+                                            ),
+                                            if (qty > 0)
+                                              Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  IconButton.filled(
+                                                    style: IconButton.styleFrom(
+                                                      padding: const EdgeInsets.all(4),
+                                                      minimumSize: const Size(32, 32),
+                                                      backgroundColor: AppTheme.primary.withValues(alpha: 0.2),
+                                                    ),
+                                                    onPressed: () => _removeFromCart(p.id),
+                                                    icon: const Icon(Icons.remove, size: 18),
+                                                  ),
+                                                  Padding(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                                                    child: Text('$qty', style: AppTheme.headingStyle),
+                                                  ),
+                                                  IconButton.filled(
+                                                    style: IconButton.styleFrom(
+                                                      padding: const EdgeInsets.all(4),
+                                                      minimumSize: const Size(32, 32),
+                                                      backgroundColor: AppTheme.primary.withValues(alpha: 0.2),
+                                                    ),
+                                                    onPressed: () => _addToCart(p),
+                                                    icon: const Icon(Icons.add, size: 18),
+                                                  ),
+                                                ],
+                                              ),
+                                          ],
+                                        ),
                                       ],
                                     ),
-                                  ],
+                                  ),
                                 ),
-                              ),
-                            ),
+                              );
+                            },
                           );
                         },
                       ),
@@ -259,7 +273,7 @@ class _CartScreenState extends State<CartScreen> {
                               children: [
                                 Expanded(
                                   child: DropdownButtonFormField<String>(
-                                    initialValue: _selectedPaymentMethod,
+                                    value: _selectedPaymentMethod,
                                     decoration: const InputDecoration(
                                       labelText: 'Payment',
                                       isDense: true,

@@ -2,12 +2,12 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:pos/config/api_config.dart';
-import 'package:pos/core/app_state.dart';
+import 'package:pos/Core/app_state.dart';
 import 'package:pos/models/user.dart';
 import 'package:pos/theme/app_theme.dart';
 import 'package:pos/admin/admin_shell.dart';
-import 'package:pos/screens.dart/home_screen.dart';
-import 'package:pos/screens.dart/signup_screen.dart';
+import 'package:pos/screens/home_screen.dart';
+import 'package:pos/screens/signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -44,6 +44,7 @@ class _LoginScreenState extends State<LoginScreen> {
         final userData = jsonDecode(response.body) as Map<String, dynamic>;
         final user = User.fromJson(userData);
         AppState.currentUser = user;
+        AppState.authToken = userData['token'] as String?;
         if (!mounted) return;
         final role = user.role.toLowerCase();
         final goToAdmin = role == 'admin' || role == 'manager';
@@ -61,7 +62,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       if (mounted) {
-        AppSnackBar.error(context, 'Cannot reach server: $e');
+        AppSnackBar.error(context, apiErrorMessage(e));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -82,8 +83,8 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Center(
         child: SingleChildScrollView(
           child: Container(
-            width: 360,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 40),
+            width: MediaQuery.sizeOf(context).width > 400 ? 360 : double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
             decoration: BoxDecoration(
               color: AppTheme.surface,
               borderRadius: BorderRadius.circular(10),

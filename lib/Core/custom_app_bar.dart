@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:pos/Core/app_state.dart';
 import 'package:pos/admin/admin_shell.dart';
 import 'package:pos/theme/app_theme.dart';
-import 'package:pos/screens.dart/login_screen.dart';
+import 'package:pos/screens/login_screen.dart';
 
 class CustomAppBar {
   static AppBar build(BuildContext context, [String? userName]) {
     final user = AppState.currentUser;
     final displayName = userName ?? user?.name ?? 'Guest';
     final roleLabel = user?.role != null ? ' · ${_roleDisplayName(user!.role)}' : '';
-    final role = user?.role?.toLowerCase();
+    final role = user?.role.toLowerCase();
     final canOpenAdmin = role == 'admin' || role == 'manager';
     return AppBar(
       title: Text(
@@ -39,6 +39,7 @@ class CustomAppBar {
           tooltip: 'Logout',
           onPressed: () {
             AppState.currentUser = null;
+            AppState.authToken = null;
             Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(

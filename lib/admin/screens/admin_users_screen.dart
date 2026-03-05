@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pos/theme/app_theme.dart';
+import 'package:pos/config/api_config.dart';
 import 'package:pos/services/api_service.dart';
 import 'package:pos/models/user.dart';
 
@@ -30,6 +31,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
       _error = null;
     });
     try {
+      // Fetch all POS users (admin, manager, cashier) from the API
       final list = await ApiService.getUsers(
         role: _roleFilter == 'all' ? null : _roleFilter,
       );
@@ -41,7 +43,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = e.toString();
+          _error = apiErrorMessage(e);
           _loading = false;
         });
       }
@@ -61,12 +63,14 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
+    return Scaffold(
+      backgroundColor: AppTheme.background,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
@@ -75,6 +79,11 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                       fontWeight: FontWeight.bold,
                       color: AppTheme.textPrimary,
                     ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'POS staff: admins, managers, and cashiers',
+                style: AppTheme.captionStyle.copyWith(color: AppTheme.textSecondary),
               ),
               const SizedBox(height: 16),
               Wrap(
@@ -95,7 +104,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                   DropdownButton<String>(
                     value: _roleFilter,
                     items: const [
-                      DropdownMenuItem(value: 'all', child: Text('All roles')),
+                      DropdownMenuItem(value: 'all', child: Text('All (Admin, Manager, Cashier)')),
                       DropdownMenuItem(value: 'admin', child: Text('Admin')),
                       DropdownMenuItem(value: 'manager', child: Text('Manager')),
                       DropdownMenuItem(value: 'cashier', child: Text('Cashier')),
@@ -120,14 +129,17 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
               ? const Center(child: CircularProgressIndicator())
               : _error != null
                   ? _ErrorView(message: _error!, onRetry: _load)
-                  : _UsersTable(
-                      users: _filteredUsers,
-                      onEdit: _editUser,
-                      onDelete: _deleteUser,
-                      onRefresh: _load,
-                    ),
+                  : _filteredUsers.isEmpty
+                      ? _EmptyUsersView(onRefresh: _load)
+                      : _UsersTable(
+                          users: _filteredUsers,
+                          onEdit: _editUser,
+                          onDelete: _deleteUser,
+                          onRefresh: _load,
+                        ),
         ),
       ],
+    ),
     );
   }
 
@@ -180,11 +192,10 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   }
 }
 
-class _ErrorView extends StatelessWidget {
-  final String message;
-  final VoidCallback onRetry;
+class _EmptyUsersView extends StatelessWidget {
+  final VoidCallback onRefresh;
 
-  const _ErrorView({required this.message, required this.onRetry});
+  const _EmptyUsersView({required this.onRefresh});
 
   @override
   Widget build(BuildContext context) {
@@ -194,10 +205,57 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline_rounded, size: 48, color: AppTheme.error),
+            Icon(Icons.people_outline_rounded, size: 64, color: AppTheme.textMuted),
             const SizedBox(height: 16),
-            Text(message, textAlign: TextAlign.center),
+            Text(
+              'No POS users yet',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textPrimary,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Add an admin, manager, or cashier using the button above.',
+              textAlign: TextAlign.center,
+              style: AppTheme.bodySecondaryStyle,
+            ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: onRefresh,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Refresh'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ErrorView extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const _ErrorView({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.cloud_off_rounded, size: 48, color: AppTheme.error),
             const SizedBox(height: 16),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppTheme.textPrimary),
+            ),
+            const SizedBox(height: 24),
             FilledButton.icon(onPressed: onRetry, icon: const Icon(Icons.refresh), label: const Text('Retry')),
           ],
         ),

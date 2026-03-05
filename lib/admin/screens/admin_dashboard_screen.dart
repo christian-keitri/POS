@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:pos/theme/app_theme.dart';
+import 'package:pos/config/api_config.dart';
 import 'package:pos/services/api_service.dart';
 import 'package:pos/models/product.dart';
 import 'package:pos/models/reports.dart';
-import 'package:pos/core/app_state.dart';
+import 'package:pos/Core/app_state.dart';
 
 /// Dashboard: sales metrics (daily/weekly/monthly), quick stats, charts.
 class AdminDashboardScreen extends StatefulWidget {
@@ -35,29 +36,28 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       _error = null;
     });
     try {
-      // Placeholder: in production you might have a dedicated dashboard API.
-      final orderStats = await ApiService.getOrderStats(userId: AppState.currentUser?.id);
-      final lowStock = await ApiService.getLowStockAlerts();
-      final users = await ApiService.getUsers();
-      final salesReport = await ApiService.getSalesReport(period: 'daily');
-      Map<String, dynamic>? revenue;
-      try {
-        revenue = await ApiService.getRevenueAnalytics(period: 'daily', days: 14);
-      } catch (_) {}
+      final results = await Future.wait([
+        ApiService.getOrderStats(userId: AppState.currentUser?.id),
+        ApiService.getLowStockAlerts(),
+        ApiService.getUsers(),
+        ApiService.getSalesReport(period: 'daily'),
+        ApiService.getRevenueAnalytics(period: 'daily', days: 14)
+            .catchError((_) => <String, dynamic>{}),
+      ]);
 
       if (!mounted) return;
       setState(() {
-        _orderStats = orderStats;
-        _lowStockProducts = lowStock;
-        _userCount = users.length;
-        _salesReport = salesReport;
-        _revenueAnalytics = revenue;
+        _orderStats = results[0] as Map<String, dynamic>;
+        _lowStockProducts = results[1] as List<Product>;
+        _userCount = (results[2] as List).length;
+        _salesReport = results[3] as SalesReport;
+        _revenueAnalytics = results[4] as Map<String, dynamic>?;
         _loading = false;
       });
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = e.toString();
+          _error = apiErrorMessage(e);
           _loading = false;
         });
       }
@@ -67,25 +67,36 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        body: const Center(child: CircularProgressIndicator()),
+      );
     }
     if (_error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline_rounded, size: 48, color: AppTheme.error),
-              const SizedBox(height: 16),
-              Text(_error!, textAlign: TextAlign.center),
-              const SizedBox(height: 16),
-              FilledButton.icon(
-                onPressed: _load,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Retry'),
-              ),
-            ],
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        body: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.cloud_off_rounded, size: 48, color: AppTheme.error),
+                const SizedBox(height: 16),
+                Text(
+                  _error!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: AppTheme.textPrimary),
+                ),
+                const SizedBox(height: 24),
+                FilledButton.icon(
+                  onPressed: _load,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry'),
+                ),
+              ],
+            ),
           ),
         ),
       );

@@ -77,10 +77,22 @@ router.get('/:id', (req, res) => {
   }
 });
 
+// Normalize payment_method to DB enum: cash, card, digital_wallet, mixed
+function normalizePaymentMethod(method) {
+  if (method == null || typeof method !== 'string') return null;
+  const m = method.trim().toLowerCase();
+  if (m === 'cash') return 'cash';
+  if (m === 'card') return 'card';
+  if (m === 'mobile' || m === 'digital_wallet') return 'digital_wallet';
+  if (m === 'other' || m === 'mixed') return 'mixed';
+  return m || null;
+}
+
 // POST create order (body: { user_id?, cashier_id?, payment_method?, payment_details?, tax_rate?, discount_amount?, notes?, items: [{ product_id, quantity, discount? }] })
 router.post('/', (req, res) => {
   try {
     const { user_id, cashier_id, payment_method, payment_details, tax_rate = 0, discount_amount = 0, notes, items } = req.body;
+    const paymentMethodNormalized = normalizePaymentMethod(payment_method);
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'items array with product_id and quantity is required' });
     }
@@ -142,7 +154,7 @@ router.post('/', (req, res) => {
         user_id != null ? Number(user_id) : null,
         cashier_id != null ? Number(cashier_id) : null,
         'pending',
-        payment_method?.trim() || null,
+        paymentMethodNormalized,
         payment_details ? JSON.stringify(payment_details) : null,
         notes?.trim() || null
       );
@@ -189,16 +201,16 @@ router.patch('/:id', (req, res) => {
 
     const updates = [];
     const params = [];
-    
+
     const validStatuses = ['pending', 'completed', 'cancelled', 'refunded'];
     if (status && validStatuses.includes(status)) {
       updates.push('status = ?');
       params.push(status);
     }
-    
+
     if (payment_method !== undefined) {
       updates.push('payment_method = ?');
-      params.push(payment_method?.trim() || null);
+      params.push(normalizePaymentMethod(payment_method));
     }
     
     if (payment_details !== undefined) {
@@ -220,9 +232,15 @@ router.patch('/:id', (req, res) => {
     
     const result = db.prepare(`UPDATE orders SET ${updates.join(', ')} WHERE id = ?`).run(...params);
     if (result.changes === 0) return res.status(404).json({ error: 'Order not found' });
-    
+
     const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(id);
-    res.json(order);
+    const items = db.prepare(`
+      SELECT oi.*, p.name as product_name
+      FROM order_items oi
+      JOIN products p ON oi.product_id = p.id
+      WHERE oi.order_id = ?
+    `).all(id);
+    res.json({ ...order, items });
   } catch (err) {
     res.status(500).json({ error: safeErrorMessage(err) });
   }

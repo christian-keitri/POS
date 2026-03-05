@@ -115,11 +115,11 @@ router.get('/alerts', (req, res) => {
       SELECT 
         p.*,
         c.name as category_name,
-        (p.low_stock_threshold - p.stock) as units_needed
+        (COALESCE(p.low_stock_threshold, 10) - p.stock) as units_needed
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
       WHERE p.is_active = 1 
-      AND p.stock <= p.low_stock_threshold
+      AND p.stock <= COALESCE(p.low_stock_threshold, 10)
     `;
     const params = [];
 
