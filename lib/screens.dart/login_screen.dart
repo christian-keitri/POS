@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:pos/config/api_config.dart';
 import 'package:pos/core/app_state.dart';
+import 'package:pos/models/user.dart';
 import 'package:pos/theme/app_theme.dart';
 import 'package:pos/screens.dart/home_screen.dart';
 import 'package:pos/screens.dart/signup_screen.dart';
@@ -39,12 +40,8 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
 
       if (response.statusCode == 200) {
-        final user = jsonDecode(response.body) as Map<String, dynamic>;
-        AppState.currentUser = AppUser(
-          id: (user['id'] as num).toInt(),
-          email: user['email'] as String,
-          businessName: user['business_name'] as String?,
-        );
+        final userData = jsonDecode(response.body) as Map<String, dynamic>;
+        AppState.currentUser = User.fromJson(userData);
         if (!mounted) return;
         Navigator.pushReplacement(
           context,
@@ -79,11 +76,11 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Center(
         child: SingleChildScrollView(
           child: Container(
-            width: 400,
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+            width: 360,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 40),
             decoration: BoxDecoration(
               color: AppTheme.surface,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(10),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.08),
@@ -98,7 +95,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    "POS Login",
+                    "Login",
                     style: AppTheme.displayStyle,
                   ),
                   const SizedBox(height: 32),

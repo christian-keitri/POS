@@ -8,6 +8,8 @@ const productsRouter = require('./routes/products');
 const ordersRouter = require('./routes/orders');
 const categoriesRouter = require('./routes/categories');
 const authRouter = require('./routes/auth');
+const stockRouter = require('./routes/stock');
+const reportsRouter = require('./routes/reports');
 
 const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
@@ -43,6 +45,8 @@ app.use('/api/products', productsRouter);
 app.use('/api/orders', ordersRouter);
 app.use('/api/categories', categoriesRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/stock', stockRouter);
+app.use('/api/reports', reportsRouter);
 
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, message: 'POS API running' });
@@ -64,10 +68,24 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`POS API listening on http://localhost:${PORT} (NODE_ENV=${process.env.NODE_ENV || 'development'})`);
   console.log('  GET  /api/health');
-  console.log('  GET  /api/products');
-  console.log('  GET  /api/orders');
-  console.log('  GET  /api/categories');
-  console.log('  POST /api/auth/signup');
-  console.log('  POST /api/auth/login');
-  console.log('  GET  /api/auth/users');
+  console.log('  Authentication:');
+  console.log('    POST /api/auth/signup');
+  console.log('    POST /api/auth/login');
+  console.log('    GET  /api/auth/users');
+  console.log('  Products & Categories:');
+  console.log('    GET  /api/products');
+  console.log('    GET  /api/categories');
+  console.log('  Orders:');
+  console.log('    GET  /api/orders');
+  console.log('    POST /api/orders');
+  console.log('  Stock Management:');
+  console.log('    GET  /api/stock/adjustments');
+  console.log('    POST /api/stock/adjust');
+  console.log('    GET  /api/stock/alerts');
+  console.log('  Reports:');
+  console.log('    GET  /api/reports/sales');
+  console.log('    GET  /api/reports/inventory');
+  console.log('    GET  /api/reports/top-products');
+  console.log('    GET  /api/reports/user-activity');
+  console.log('    GET  /api/reports/revenue');
 });

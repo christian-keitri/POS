@@ -6,6 +6,9 @@ import 'package:pos/config/api_config.dart';
 import 'package:pos/models/category.dart';
 import 'package:pos/models/order.dart';
 import 'package:pos/models/product.dart';
+import 'package:pos/models/user.dart';
+import 'package:pos/models/stock_adjustment.dart';
+import 'package:pos/models/reports.dart';
 
 class ApiService {
   static const _base = apiBaseUrl;
@@ -282,4 +285,252 @@ class ApiService {
     }
     return Order.fromJson(jsonDecode(r.body) as Map<String, dynamic>);
   }
+
+  static Future<Map<String, dynamic>> getReceipt(int orderId) async {
+    final r = await http.get(Uri.parse('$_base/api/orders/$orderId/receipt'));
+    if (r.statusCode != 200) throw Exception(r.body);
+    return jsonDecode(r.body) as Map<String, dynamic>;
+  }
+
+  // ==================== User Management ====================
+
+  static Future<List<User>> getUsers({String? role, bool? isActive}) async {
+    var url = '$_base/api/auth/users';
+    final q = <String>[];
+    if (role != null) q.add('role=$role');
+    if (isActive != null) q.add('is_active=${isActive ? '1' : '0'}');
+    if (q.isNotEmpty) url += '?${q.join('&')}';
+    final r = await http.get(Uri.parse(url));
+    if (r.statusCode != 200) throw Exception(r.body);
+    final list = jsonDecode(r.body) as List;
+    return list.map((e) => User.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  static Future<User> getUser(int id) async {
+    final r = await http.get(Uri.parse('$_base/api/auth/users/$id'));
+    if (r.statusCode != 200) throw Exception(r.body);
+    return User.fromJson(jsonDecode(r.body) as Map<String, dynamic>);
+  }
+
+  static Future<User> createUser({
+    required String email,
+    required String password,
+    String? businessName,
+    String? displayName,
+    String role = 'cashier',
+  }) async {
+    final r = await http.post(
+      Uri.parse('$_base/api/auth/users'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'email': email,
+        'password': password,
+        'business_name': businessName,
+        'display_name': displayName,
+        'role': role,
+      }),
+    );
+    if (r.statusCode != 201) {
+      final err = jsonDecode(r.body);
+      throw Exception(err['error'] ?? r.body);
+    }
+    return User.fromJson(jsonDecode(r.body) as Map<String, dynamic>);
+  }
+
+  static Future<User> updateUser(
+    int id, {
+    String? email,
+    String? password,
+    String? businessName,
+    String? displayName,
+    String? role,
+    bool? isActive,
+  }) async {
+    final body = <String, dynamic>{};
+    if (email != null) body['email'] = email;
+    if (password != null) body['password'] = password;
+    if (businessName != null) body['business_name'] = businessName;
+    if (displayName != null) body['display_name'] = displayName;
+    if (role != null) body['role'] = role;
+    if (isActive != null) body['is_active'] = isActive;
+    final r = await http.put(
+      Uri.parse('$_base/api/auth/users/$id'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(body),
+    );
+    if (r.statusCode != 200) {
+      final err = jsonDecode(r.body);
+      throw Exception(err['error'] ?? r.body);
+    }
+    return User.fromJson(jsonDecode(r.body) as Map<String, dynamic>);
+  }
+
+  static Future<void> deleteUser(int id) async {
+    final r = await http.delete(Uri.parse('$_base/api/auth/users/$id'));
+    if (r.statusCode != 204) {
+      final body = r.body.isEmpty ? {} : jsonDecode(r.body) as Map<String, dynamic>;
+      throw Exception(body['error'] ?? r.body);
+    }
+  }
+
+  // ==================== Stock Management ====================
+
+  static Future<List<StockAdjustment>> getStockAdjustments({
+    int? productId,
+    int? userId,
+    String? reason,
+    int limit = 100,
+    int offset = 0,
+  }) async {
+    var url = '$_base/api/stock/adjustments';
+    final q = <String>[];
+    if (productId != null) q.add('product_id=$productId');
+    if (userId != null) q.add('user_id=$userId');
+    if (reason != null) q.add('reason=$reason');
+    q.add('limit=$limit');
+    q.add('offset=$offset');
+    if (q.isNotEmpty) url += '?${q.join('&')}';
+    final r = await http.get(Uri.parse(url));
+    if (r.statusCode != 200) throw Exception(r.body);
+    final list = jsonDecode(r.body) as List;
+    return list.map((e) => StockAdjustment.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  static Future<StockAdjustment> adjustStock({
+    required int productId,
+    int? userId,
+    required int quantityChange,
+    String reason = 'adjustment',
+    String? notes,
+  }) async {
+    final r = await http.post(
+      Uri.parse('$_base/api/stock/adjust'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'product_id': productId,
+        'user_id': userId,
+        'quantity_change': quantityChange,
+        'reason': reason,
+        'notes': notes,
+      }),
+    );
+    if (r.statusCode != 201) {
+      final err = jsonDecode(r.body);
+      throw Exception(err['error'] ?? r.body);
+    }
+    return StockAdjustment.fromJson(jsonDecode(r.body) as Map<String, dynamic>);
+  }
+
+  static Future<List<Product>> getLowStockAlerts({int? categoryId}) async {
+    var url = '$_base/api/stock/alerts';
+    if (categoryId != null) url += '?category_id=$categoryId';
+    final r = await http.get(Uri.parse(url));
+    if (r.statusCode != 200) throw Exception(r.body);
+    final list = jsonDecode(r.body) as List;
+    return list.map((e) => Product.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  // ==================== Reports ====================
+
+  static Future<SalesReport> getSalesReport({
+    String period = 'daily',
+    String? startDate,
+    String? endDate,
+    int? cashierId,
+    String status = 'completed',
+  }) async {
+    var url = '$_base/api/reports/sales';
+    final q = <String>[];
+    q.add('period=$period');
+    if (startDate != null) q.add('start_date=$startDate');
+    if (endDate != null) q.add('end_date=$endDate');
+    if (cashierId != null) q.add('cashier_id=$cashierId');
+    q.add('status=$status');
+    if (q.isNotEmpty) url += '?${q.join('&')}';
+    final r = await http.get(Uri.parse(url));
+    if (r.statusCode != 200) throw Exception(r.body);
+    return SalesReport.fromJson(jsonDecode(r.body) as Map<String, dynamic>);
+  }
+
+  static Future<Map<String, dynamic>> getInventoryReport({
+    int? categoryId,
+    bool lowStockOnly = false,
+  }) async {
+    var url = '$_base/api/reports/inventory';
+    final q = <String>[];
+    if (categoryId != null) q.add('category_id=$categoryId');
+    if (lowStockOnly) q.add('low_stock_only=1');
+    if (q.isNotEmpty) url += '?${q.join('&')}';
+    final r = await http.get(Uri.parse(url));
+    if (r.statusCode != 200) throw Exception(r.body);
+    return jsonDecode(r.body) as Map<String, dynamic>;
+  }
+
+  static Future<List<TopProduct>> getTopProducts({
+    String period = 'monthly',
+    int limit = 10,
+    String? startDate,
+    String? endDate,
+  }) async {
+    var url = '$_base/api/reports/top-products';
+    final q = <String>[];
+    q.add('period=$period');
+    q.add('limit=$limit');
+    if (startDate != null) q.add('start_date=$startDate');
+    if (endDate != null) q.add('end_date=$endDate');
+    if (q.isNotEmpty) url += '?${q.join('&')}';
+    final r = await http.get(Uri.parse(url));
+    if (r.statusCode != 200) throw Exception(r.body);
+    final list = jsonDecode(r.body) as List;
+    return list.map((e) => TopProduct.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  static Future<List<Map<String, dynamic>>> getUserActivityLogs({
+    int? userId,
+    String? action,
+    String? startDate,
+    String? endDate,
+    int limit = 100,
+    int offset = 0,
+  }) async {
+    var url = '$_base/api/reports/user-activity';
+    final q = <String>[];
+    if (userId != null) q.add('user_id=$userId');
+    if (action != null) q.add('action=$action');
+    if (startDate != null) q.add('start_date=$startDate');
+    if (endDate != null) q.add('end_date=$endDate');
+    q.add('limit=$limit');
+    q.add('offset=$offset');
+    if (q.isNotEmpty) url += '?${q.join('&')}';
+    final r = await http.get(Uri.parse(url));
+    if (r.statusCode != 200) throw Exception(r.body);
+    return (jsonDecode(r.body) as List).cast<Map<String, dynamic>>();
+  }
+
+  static Future<Map<String, dynamic>> getRevenueAnalytics({
+    String period = 'daily',
+    int days = 30,
+  }) async {
+    var url = '$_base/api/reports/revenue?period=$period&days=$days';
+    final r = await http.get(Uri.parse(url));
+    if (r.statusCode != 200) throw Exception(r.body);
+    return jsonDecode(r.body) as Map<String, dynamic>;
+  }
+
+  static Future<List<Map<String, dynamic>>> getCashierPerformance({
+    String period = 'monthly',
+    String? startDate,
+    String? endDate,
+  }) async {
+    var url = '$_base/api/reports/cashier-performance';
+    final q = <String>[];
+    q.add('period=$period');
+    if (startDate != null) q.add('start_date=$startDate');
+    if (endDate != null) q.add('end_date=$endDate');
+    if (q.isNotEmpty) url += '?${q.join('&')}';
+    final r = await http.get(Uri.parse(url));
+    if (r.statusCode != 200) throw Exception(r.body);
+    return (jsonDecode(r.body) as List).cast<Map<String, dynamic>>();
+  }
 }
+

@@ -1,33 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:pos/core/app_state.dart';
+import 'package:pos/Core/app_state.dart';
 import 'package:pos/theme/app_theme.dart';
 import 'package:pos/screens.dart/login_screen.dart';
 
 class CustomAppBar {
   static AppBar build(BuildContext context, [String? userName]) {
-    final displayName = userName ?? AppState.currentUser?.displayName ?? 'Guest';
+    final displayName = userName ?? AppState.currentUser?.name ?? 'Guest';
     return AppBar(
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "Welcome,",
-            style: TextStyle(
-              fontSize: AppTheme.fontSizeCaption,
-              color: Colors.white.withValues(alpha: 0.85),
-            ),
-          ),
-          Text(
-            displayName,
-            style: const TextStyle(
-              fontSize: AppTheme.fontSizeHeading,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-          ),
-        ],
+      title: Text(
+        "Welcome, $displayName",
+        style: const TextStyle(
+          fontSize: AppTheme.fontSizeHeading,
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+        ),
       ),
-      backgroundColor: AppTheme.appBarBackground,
+      backgroundColor: AppTheme.primary,
       elevation: 0,
       actions: [
         IconButton(

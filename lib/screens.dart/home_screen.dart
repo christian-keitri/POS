@@ -134,9 +134,18 @@ class _DashboardTabState extends State<_DashboardTab> {
 
   String _greeting() {
     final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
+    String timeGreeting;
+    if (hour < 12) {
+      timeGreeting = 'Good morning';
+    // ignore: curly_braces_in_flow_control_structures
+    } else if (hour < 17) timeGreeting = 'Good afternoon';
+    // ignore: curly_braces_in_flow_control_structures
+    else timeGreeting = 'Good evening';
+    final name = AppState.currentUser?.displayName;
+    if (name != null && name.isNotEmpty && name != 'Guest') {
+      return '$timeGreeting, ${name.split(' ').first}';
+    }
+    return timeGreeting;
   }
 
   @override
@@ -205,12 +214,14 @@ class _DashboardTabState extends State<_DashboardTab> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(_greeting(), style: AppTheme.captionStyle),
-            const SizedBox(height: 4),
+            Text(_greeting(), style: AppTheme.captionStyle.copyWith(fontSize: 15, color: AppTheme.primary, fontWeight: FontWeight.w500)),
+            const SizedBox(height: 6),
             Text('Dashboard', style: AppTheme.titleStyle.copyWith(fontSize: 26, fontWeight: FontWeight.w700)),
             const SizedBox(height: 4),
             Text(dateStr, style: AppTheme.bodySecondaryStyle.copyWith(fontSize: 13)),
             const SizedBox(height: 28),
+            Text("Today's overview", style: AppTheme.smallStyle.copyWith(color: AppTheme.textSecondary, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
@@ -232,54 +243,37 @@ class _DashboardTabState extends State<_DashboardTab> {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
-            Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: widget.onNewOrder,
-                  borderRadius: BorderRadius.circular(16),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primary.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: const Icon(Icons.add_shopping_cart_rounded, color: AppTheme.primary, size: 28),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('New order', style: AppTheme.headingStyle),
-                              const SizedBox(height: 2),
-                              Text('Start a new sale', style: AppTheme.captionStyle),
-                            ],
-                          ),
-                        ),
-                        Icon(Icons.arrow_forward_ios_rounded, size: 16, color: AppTheme.textMuted),
-                      ],
-                    ),
+            const SizedBox(height: 28),
+            Text('Quick actions', style: AppTheme.smallStyle.copyWith(color: AppTheme.textSecondary, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _QuickActionChip(
+                    icon: Icons.add_shopping_cart_rounded,
+                    label: 'New order',
+                    onTap: widget.onNewOrder,
+                    primary: true,
                   ),
                 ),
-              ),
+                if (widget.onViewOrders != null) ...[
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _QuickActionChip(
+                      icon: Icons.receipt_long_outlined,
+                      label: 'View orders',
+                      onTap: widget.onViewOrders!,
+                      primary: false,
+                    ),
+                  ),
+                ],
+              ],
             ),
-            if (widget.onViewOrders != null) ...[
-              const SizedBox(height: 16),
-              TextButton.icon(
-                onPressed: widget.onViewOrders,
-                icon: const Icon(Icons.receipt_long_outlined, size: 20),
-                label: const Text('View all orders'),
-                style: TextButton.styleFrom(foregroundColor: AppTheme.primary),
-              ),
-            ],
+            const SizedBox(height: 24),
+            _NewOrderCard(
+              onTap: widget.onNewOrder,
+              orderCount: count,
+            ),
           ],
         ),
       ),
@@ -287,8 +281,10 @@ class _DashboardTabState extends State<_DashboardTab> {
   }
 
   String _formatDate(DateTime d) {
+    const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return '${months[d.month - 1]} ${d.day}, ${d.year}';
+    final weekday = weekdays[d.weekday - 1];
+    return '$weekday, ${months[d.month - 1]} ${d.day}, ${d.year}';
   }
 }
 
@@ -310,7 +306,10 @@ class _StatCard extends StatelessWidget {
     return Card(
       elevation: 0,
       color: AppTheme.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: AppTheme.border, width: 1),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(
@@ -329,6 +328,127 @@ class _StatCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(value, style: AppTheme.titleStyle.copyWith(fontWeight: FontWeight.w700, fontSize: 20)),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _QuickActionChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool primary;
+
+  const _QuickActionChip({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.primary = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: primary ? AppTheme.primary.withValues(alpha: 0.12) : AppTheme.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: primary ? AppTheme.primary.withValues(alpha: 0.4) : AppTheme.border,
+              width: 1,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 22,
+                color: primary ? AppTheme.primary : AppTheme.textSecondary,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                label,
+                style: AppTheme.bodyStyle.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: primary ? AppTheme.primary : AppTheme.textPrimary,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NewOrderCard extends StatelessWidget {
+  final VoidCallback onTap;
+  final int orderCount;
+
+  const _NewOrderCard({required this.onTap, required this.orderCount});
+
+  @override
+  Widget build(BuildContext context) {
+    final isFirstOrder = orderCount == 0;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppTheme.primary.withValues(alpha: 0.15),
+                AppTheme.primary.withValues(alpha: 0.06),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppTheme.primary.withValues(alpha: 0.25), width: 1),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(Icons.add_shopping_cart_rounded, color: AppTheme.primary, size: 32),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isFirstOrder ? 'Start your first sale' : 'New order',
+                      style: AppTheme.titleStyle.copyWith(fontSize: 20, fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      isFirstOrder
+                          ? 'Tap to add items and complete a sale'
+                          : 'Start a new sale',
+                      style: AppTheme.captionStyle.copyWith(fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.arrow_forward_rounded, size: 24, color: AppTheme.primary),
+            ],
+          ),
         ),
       ),
     );
@@ -1149,7 +1269,7 @@ class _ProfileTabState extends State<_ProfileTab> {
                       radius: 32,
                       backgroundColor: AppTheme.primary.withValues(alpha: 0.15),
                       child: Text(
-                        (user?.displayName ?? '?').isNotEmpty ? (user!.displayName[0].toUpperCase()) : '?',
+                        (user?.displayName ?? '?').isNotEmpty ? (user!.displayName?[0].toUpperCase() ?? '?') : '?',
                         style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: AppTheme.primary),
                       ),
                     ),

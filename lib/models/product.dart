@@ -7,6 +7,7 @@ class Product {
   final double price;
   final double cost;
   final int stock;
+  final int lowStockThreshold;
   final int? categoryId;
   final String? categoryName;
   /// Server path (filename) for product image; full URL is apiBaseUrl + /uploads/ + imagePath
@@ -22,6 +23,7 @@ class Product {
     required this.price,
     this.cost = 0,
     this.stock = 0,
+    this.lowStockThreshold = 10,
     this.categoryId,
     this.categoryName,
     this.imagePath,
@@ -40,6 +42,7 @@ class Product {
       price: (json['price'] as num).toDouble(),
       cost: (json['cost'] as num?)?.toDouble() ?? 0,
       stock: (json['stock'] as num?)?.toInt() ?? 0,
+      lowStockThreshold: (json['low_stock_threshold'] as num?)?.toInt() ?? 10,
       categoryId: (json['category_id'] as num?)?.toInt(),
       categoryName: json['category_name'] as String?,
       imagePath: json['image_path'] as String?,
