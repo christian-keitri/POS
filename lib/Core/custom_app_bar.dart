@@ -5,10 +5,12 @@ import 'package:pos/screens.dart/login_screen.dart';
 
 class CustomAppBar {
   static AppBar build(BuildContext context, [String? userName]) {
-    final displayName = userName ?? AppState.currentUser?.name ?? 'Guest';
+    final user = AppState.currentUser;
+    final displayName = userName ?? user?.name ?? 'Guest';
+    final roleLabel = user?.role != null ? ' · ${_roleDisplayName(user!.role)}' : '';
     return AppBar(
       title: Text(
-        "Welcome, $displayName",
+        "Welcome, $displayName$roleLabel",
         style: const TextStyle(
           fontSize: AppTheme.fontSizeHeading,
           fontWeight: FontWeight.w600,
@@ -34,5 +36,14 @@ class CustomAppBar {
         ),
       ],
     );
+  }
+
+  static String _roleDisplayName(String role) {
+    switch (role) {
+      case 'admin': return 'Admin';
+      case 'manager': return 'Manager';
+      case 'cashier': return 'Cashier';
+      default: return role;
+    }
   }
 }

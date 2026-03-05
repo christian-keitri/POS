@@ -7,11 +7,12 @@ const { safeErrorMessage } = require('../lib/safeError');
 // Basic validation helpers
 const isValidEmail = (e) => typeof e === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
 const isValidPassword = (p) => typeof p === 'string' && p.length >= 8;
+const validRoles = ['admin', 'manager', 'cashier'];
 
 // POST /api/auth/signup - create account
 router.post('/signup', (req, res) => {
   try {
-    const { email, password, business_name } = req.body;
+    const { email, password, business_name, role: requestedRole } = req.body;
     if (!email || !password) {
       return res.status(400).json({ error: 'email and password are required' });
     }
@@ -21,6 +22,7 @@ router.post('/signup', (req, res) => {
     if (!isValidPassword(password)) {
       return res.status(400).json({ error: 'Password must be at least 8 characters' });
     }
+    const role = requestedRole && validRoles.includes(requestedRole) ? requestedRole : 'cashier';
     const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email.toLowerCase().trim());
     if (existing) {
       return res.status(400).json({ error: 'Email already registered' });
@@ -28,7 +30,7 @@ router.post('/signup', (req, res) => {
     const password_hash = bcrypt.hashSync(password.trim(), 10);
     const result = db.prepare(
       'INSERT INTO users (email, password_hash, business_name, role) VALUES (?, ?, ?, ?)'
-    ).run(email.toLowerCase().trim(), password_hash, business_name?.trim() || null, 'admin');
+    ).run(email.toLowerCase().trim(), password_hash, business_name?.trim() || null, role);
     const user = db.prepare('SELECT id, email, business_name, role, created_at FROM users WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(user);
   } catch (err) {

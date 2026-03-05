@@ -20,6 +20,8 @@ class _SignupScreenState extends State<SignupScreen> {
 
   final _formKey = GlobalKey<FormState>();
 
+  /// Selected role: admin, manager, or cashier
+  String _selectedRole = 'cashier';
   bool _loading = false;
 
   Future<void> _signup() async {
@@ -43,6 +45,7 @@ class _SignupScreenState extends State<SignupScreen> {
           'business_name': _businessController.text.trim().isEmpty
               ? null
               : _businessController.text.trim(),
+          'role': _selectedRole,
         }),
       );
 
@@ -121,6 +124,41 @@ class _SignupScreenState extends State<SignupScreen> {
 
                   const SizedBox(height: 20),
 
+                  /// Role
+                  Text(
+                    'Role',
+                    style: AppTheme.captionStyle.copyWith(
+                      color: AppTheme.textSecondary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      _RoleChip(
+                        label: 'Admin',
+                        value: 'admin',
+                        selected: _selectedRole == 'admin',
+                        onTap: () => setState(() => _selectedRole = 'admin'),
+                      ),
+                      const SizedBox(width: 10),
+                      _RoleChip(
+                        label: 'Manager',
+                        value: 'manager',
+                        selected: _selectedRole == 'manager',
+                        onTap: () => setState(() => _selectedRole = 'manager'),
+                      ),
+                      const SizedBox(width: 10),
+                      _RoleChip(
+                        label: 'Cashier',
+                        value: 'cashier',
+                        selected: _selectedRole == 'cashier',
+                        onTap: () => setState(() => _selectedRole = 'cashier'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
                   /// Email
                   TextFormField(
                     controller: _emailController,
@@ -141,7 +179,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       labelText: "Password",
                     ),
                     validator: (value) =>
-                        value!.length < 6 ? "Minimum 6 characters" : null,
+                        value!.length < 8 ? "Minimum 8 characters" : null,
                   ),
 
                   const SizedBox(height: 20),
@@ -194,6 +232,55 @@ class _SignupScreenState extends State<SignupScreen> {
                     ),
                   ),
                 ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RoleChip extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _RoleChip({
+    required this.label,
+    required this.value,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            decoration: BoxDecoration(
+              color: selected ? AppTheme.primary : AppTheme.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: selected ? AppTheme.primary : AppTheme.border,
+                width: 1.5,
+              ),
+            ),
+            child: Center(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: selected ? Colors.white : AppTheme.textSecondary,
+                ),
               ),
             ),
           ),
