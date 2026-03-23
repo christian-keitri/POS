@@ -35,27 +35,27 @@ GoRouter createAdminRouter() {
     routes: [
       GoRoute(
         path: '/',
-        redirect: (_, __) => AdminRoutes.dashboard,
+        redirect: (_, _) => AdminRoutes.dashboard,
       ),
       GoRoute(
         path: AdminRoutes.dashboard,
-        builder: (_, __) => const AdminDashboardScreen(),
+        builder: (_, _) => const AdminDashboardScreen(),
       ),
       GoRoute(
         path: AdminRoutes.users,
-        builder: (_, __) => const AdminUsersScreen(),
+        builder: (_, _) => const AdminUsersScreen(),
       ),
       GoRoute(
         path: AdminRoutes.products,
-        builder: (_, __) => const AdminProductsScreen(),
+        builder: (_, _) => const AdminProductsScreen(),
       ),
       GoRoute(
         path: AdminRoutes.sales,
-        builder: (_, __) => const AdminSalesScreen(),
+        builder: (_, _) => const AdminSalesScreen(),
       ),
       GoRoute(
         path: AdminRoutes.reports,
-        builder: (_, __) => const AdminReportsScreen(),
+        builder: (_, _) => const AdminReportsScreen(),
       ),
     ],
   );

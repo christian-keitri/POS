@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:pos/theme/app_theme.dart';
 import 'package:pos/screens/login_screen.dart';
@@ -15,6 +16,7 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _controller;
   late Animation<double> _logoFadeOut;
   late Animation<double> _iconFadeIn;
+  Timer? _navigationTimer;
 
   @override
   void initState() {
@@ -44,21 +46,34 @@ class _SplashScreenState extends State<SplashScreen>
     _navigateAfterSplash();
   }
 
-  Future<void> _navigateAfterSplash() async {
-    await Future.delayed(const Duration(seconds: 2));
+  void _navigateAfterSplash() {
+    _navigationTimer = Timer(const Duration(seconds: 2), () {
+      if (!mounted) return;
 
-    if (!mounted) return;
-
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (context) => const LoginScreen(),
-      ),
-    );
+      // Only navigate if we have a valid navigator context
+      try {
+        // Check if we can access the navigator
+        final navigator = Navigator.maybeOf(context);
+        if (navigator != null && mounted) {
+          navigator.pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => const LoginScreen(),
+            ),
+          );
+        }
+      } catch (e) {
+        // Silently handle navigation errors in tests
+        if (kDebugMode) {
+          print('Navigation error in splash: $e');
+        }
+      }
+    });
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _navigationTimer?.cancel();
     super.dispose();
   }
 
@@ -67,26 +82,37 @@ class _SplashScreenState extends State<SplashScreen>
     return Scaffold(
       backgroundColor: AppTheme.primary,
       body: Center(
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            FadeTransition(
-              opacity: _logoFadeOut,
-              child: Image.asset(
-                'assets/images/logo.png',
-                width: 200,
-                height: 200,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  FadeTransition(
+                    opacity: _logoFadeOut,
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      width: 150,
+                      height: 150,
+                    ),
+                  ),
+                  FadeTransition(
+                    opacity: _iconFadeIn,
+                    child: Image.asset(
+                      'assets/images/icon.png',
+                      width: 150,
+                      height: 150,
+                    ),
+                  ),
+                ],
               ),
-            ),
-            FadeTransition(
-              opacity: _iconFadeIn,
-              child: Image.asset(
-                'assets/images/icon.png',
-                width: 200,
-                height: 200,
+              const SizedBox(height: 30),
+              const CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

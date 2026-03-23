@@ -18,7 +18,6 @@ class AdminDashboardScreen extends StatefulWidget {
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   bool _loading = true;
   String? _error;
-  Map<String, dynamic>? _orderStats;
   List<Product>? _lowStockProducts;
   int? _userCount;
   SalesReport? _salesReport;
@@ -51,7 +50,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
       if (!mounted) return;
       setState(() {
-        _orderStats = results[0] as Map<String, dynamic>;
         _lowStockProducts = results[1] as List<Product>;
         _userCount = (results[2] as List).length;
         _salesReport = results[3] as SalesReport;
@@ -174,7 +172,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: _lowStockProducts!.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      separatorBuilder: (_, _) => const Divider(height: 1),
                       itemBuilder: (context, i) {
                         final p = _lowStockProducts![i];
                         return ListTile(

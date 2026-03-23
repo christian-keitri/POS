@@ -273,7 +273,7 @@ class _CartScreenState extends State<CartScreen> {
                               children: [
                                 Expanded(
                                   child: DropdownButtonFormField<String>(
-                                    value: _selectedPaymentMethod,
+                                    initialValue: _selectedPaymentMethod,
                                     decoration: const InputDecoration(
                                       labelText: 'Payment',
                                       isDense: true,
