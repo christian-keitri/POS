@@ -1,27 +1,29 @@
-# Production Dockerfile for POS API server
-FROM node:20-alpine
-
+FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+COPY package.json package-lock.json* ./
+RUN npm ci
 
-# Production dependencies only
-RUN npm ci --omit=dev
+COPY prisma ./prisma
+RUN npx prisma generate
 
-# Copy application
-COPY . .
+COPY tsconfig.json tsconfig.build.json nest-cli.json ./
+COPY src ./src
+RUN npm run build
 
-# Create non-root user
-RUN addgroup -g 1001 -S pos && adduser -u 1001 -S pos -G pos \
-  && mkdir -p data uploads && chown -R pos:pos /app/data /app/uploads
+# ---
+FROM node:20-alpine
+WORKDIR /app
 
-USER pos
+RUN addgroup -S app && adduser -S app -G app
+
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/prisma ./prisma
+COPY package.json ./
+
+RUN mkdir -p uploads && chown -R app:app /app
+USER app
 
 EXPOSE 3000
-
-ENV NODE_ENV=production
-ENV PORT=3000
-
-# Initialize DB if missing, then start server
-CMD ["sh", "-c", "node scripts/init-db.js && node index.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main"]
