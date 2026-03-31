@@ -41,19 +41,19 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
 
       if (response.statusCode == 200) {
-        final userData = jsonDecode(response.body) as Map<String, dynamic>;
-        final user = User.fromJson(userData);
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        final userData = body['data'] as Map<String, dynamic>;
+        final user = User.fromJson(userData['user'] as Map<String, dynamic>);
         AppState.currentUser = user;
-        AppState.authToken = userData['token'] as String?;
+        AppState.authToken = userData['accessToken'] as String?;
         if (!mounted) return;
         final role = user.role.toLowerCase();
         final goToAdmin = role == 'admin' || role == 'manager';
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (_) => goToAdmin
-                ? const AdminShell()
-                : const HomeScreen(title: 'POS'),
+            builder: (_) =>
+                goToAdmin ? const AdminShell() : const HomeScreen(title: 'POS'),
           ),
         );
       } else {
@@ -83,7 +83,9 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Center(
         child: SingleChildScrollView(
           child: Container(
-            width: MediaQuery.sizeOf(context).width > 400 ? 360 : double.infinity,
+            width: MediaQuery.sizeOf(context).width > 400
+                ? 360
+                : double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
             decoration: BoxDecoration(
               color: AppTheme.surface,
@@ -101,18 +103,13 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    "Login",
-                    style: AppTheme.displayStyle,
-                  ),
+                  Text("Login", style: AppTheme.displayStyle),
                   const SizedBox(height: 32),
 
                   /// Email
                   TextFormField(
                     controller: _emailController,
-                    decoration: const InputDecoration(
-                      labelText: "Email",
-                    ),
+                    decoration: const InputDecoration(labelText: "Email"),
                     validator: (value) =>
                         value!.isEmpty ? "Enter your email" : null,
                   ),
@@ -123,9 +120,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextFormField(
                     controller: _passwordController,
                     obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: "Password",
-                    ),
+                    decoration: const InputDecoration(labelText: "Password"),
                     validator: (value) =>
                         value!.isEmpty ? "Enter your password" : null,
                   ),
@@ -158,9 +153,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => const SignupScreen(),
-                        ),
+                        MaterialPageRoute(builder: (_) => const SignupScreen()),
                       );
                     },
                     child: Text(

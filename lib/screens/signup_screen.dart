@@ -23,7 +23,6 @@ class _SignupScreenState extends State<SignupScreen> {
   /// Selected role: admin, manager, or cashier
   String _selectedRole = 'cashier';
   bool _loading = false;
-
   Future<void> _signup() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -42,10 +41,9 @@ class _SignupScreenState extends State<SignupScreen> {
         body: jsonEncode({
           'email': _emailController.text.trim(),
           'password': _passwordController.text.trim(),
-          'business_name': _businessController.text.trim().isEmpty
-              ? null
+          'displayName': _businessController.text.trim().isEmpty
+              ? _emailController.text.trim()
               : _businessController.text.trim(),
-          'role': _selectedRole,
         }),
       );
 
@@ -55,13 +53,14 @@ class _SignupScreenState extends State<SignupScreen> {
         AppSnackBar.success(context, 'Account created! You can now log in.');
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-            builder: (_) => const LoginScreen(),
-          ),
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
         );
       } else {
         final body = jsonDecode(response.body);
-        AppSnackBar.error(context, body['error']?.toString() ?? 'Signup failed');
+        AppSnackBar.error(
+          context,
+          body['error']?.toString() ?? 'Signup failed',
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -106,10 +105,7 @@ class _SignupScreenState extends State<SignupScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    "Create POS Account",
-                    style: AppTheme.titleStyle,
-                  ),
+                  Text("Create POS Account", style: AppTheme.titleStyle),
                   const SizedBox(height: 32),
 
                   /// Business Name
@@ -162,11 +158,8 @@ class _SignupScreenState extends State<SignupScreen> {
                   /// Email
                   TextFormField(
                     controller: _emailController,
-                    decoration: const InputDecoration(
-                      labelText: "Email",
-                    ),
-                    validator: (value) =>
-                        value!.isEmpty ? "Enter email" : null,
+                    decoration: const InputDecoration(labelText: "Email"),
+                    validator: (value) => value!.isEmpty ? "Enter email" : null,
                   ),
 
                   const SizedBox(height: 20),
@@ -175,9 +168,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   TextFormField(
                     controller: _passwordController,
                     obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: "Password",
-                    ),
+                    decoration: const InputDecoration(labelText: "Password"),
                     validator: (value) =>
                         value!.length < 8 ? "Minimum 8 characters" : null,
                   ),
@@ -289,4 +280,3 @@ class _RoleChip extends StatelessWidget {
     );
   }
 }
-
