@@ -32,35 +32,57 @@ class StockAdjustment {
   });
 
   factory StockAdjustment.fromJson(Map<String, dynamic> json) {
+    // Handle nested product/user objects from Prisma include
+    final product = json['product'] as Map<String, dynamic>?;
+    final user = json['user'] as Map<String, dynamic>?;
+
     return StockAdjustment(
       id: (json['id'] as num).toInt(),
-      productId: (json['product_id'] as num).toInt(),
-      productName: json['product_name'] as String?,
-      productSku: json['product_sku'] as String?,
-      userId: (json['user_id'] as num?)?.toInt(),
-      userEmail: json['user_email'] as String?,
-      quantityChange: (json['quantity_change'] as num).toInt(),
-      oldStock: (json['old_stock'] as num).toInt(),
-      newStock: (json['new_stock'] as num).toInt(),
+      productId: (json['productId'] as num?)?.toInt()
+          ?? (json['product_id'] as num?)?.toInt()
+          ?? (product?['id'] as num?)?.toInt()
+          ?? 0,
+      productName: json['productName'] as String?
+          ?? json['product_name'] as String?
+          ?? product?['name'] as String?,
+      productSku: json['productSku'] as String?
+          ?? json['product_sku'] as String?
+          ?? product?['sku'] as String?,
+      userId: (json['userId'] as num?)?.toInt()
+          ?? (json['user_id'] as num?)?.toInt()
+          ?? (user?['id'] as num?)?.toInt(),
+      userEmail: json['userEmail'] as String?
+          ?? json['user_email'] as String?
+          ?? user?['email'] as String?,
+      quantityChange: (json['quantityChange'] as num?)?.toInt()
+          ?? (json['quantity_change'] as num?)?.toInt()
+          ?? 0,
+      oldStock: (json['oldStock'] as num?)?.toInt()
+          ?? (json['old_stock'] as num?)?.toInt()
+          ?? 0,
+      newStock: (json['newStock'] as num?)?.toInt()
+          ?? (json['new_stock'] as num?)?.toInt()
+          ?? 0,
       reason: json['reason'] as String,
       notes: json['notes'] as String?,
-      referenceType: json['reference_type'] as String?,
-      referenceId: (json['reference_id'] as num?)?.toInt(),
-      createdAt: json['created_at'] as String,
+      referenceType: (json['referenceType'] ?? json['reference_type']) as String?,
+      referenceId: (json['referenceId'] as num?)?.toInt()
+          ?? (json['reference_id'] as num?)?.toInt(),
+      createdAt: (json['createdAt'] ?? json['created_at'])?.toString() ?? '',
     );
   }
 
   String get reasonDisplay {
-    switch (reason) {
-      case 'sale':
+    switch (reason.toUpperCase()) {
+      case 'SALE':
         return 'Sale';
-      case 'purchase':
+      case 'PURCHASE':
         return 'Purchase';
-      case 'adjustment':
+      case 'ADJUSTMENT':
         return 'Manual Adjustment';
-      case 'damage':
+      case 'DAMAGE':
         return 'Damaged/Lost';
-      case 'return':
+      case 'RETURN':
         return 'Customer Return';
       default:
         return reason;

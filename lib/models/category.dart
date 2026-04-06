@@ -16,7 +16,9 @@ class Category {
       id: (json['id'] as num).toInt(),
       name: json['name'] as String,
       description: json['description'] as String?,
-      sortOrder: (json['sort_order'] as num?)?.toInt() ?? 0,
+      sortOrder: (json['sortOrder'] as num?)?.toInt()
+          ?? (json['sort_order'] as num?)?.toInt()
+          ?? 0,
     );
   }
 
@@ -24,6 +26,6 @@ class Category {
         'id': id,
         'name': name,
         'description': description,
-        'sort_order': sortOrder,
+        'sortOrder': sortOrder,
       };
 }

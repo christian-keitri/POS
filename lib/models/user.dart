@@ -26,7 +26,7 @@ class User {
   bool get isCashier => role == 'cashier';
 
   factory User.fromJson(Map<String, dynamic> json) {
-    final isActiveRaw = json['is_active'];
+    final isActiveRaw = json['isActive'] ?? json['is_active'];
     final isActive = isActiveRaw == null ? true : (isActiveRaw == 1 || isActiveRaw == true);
     final roleRaw = json['role'] as String?;
     final role = (roleRaw ?? 'cashier').toLowerCase().trim();
@@ -35,23 +35,23 @@ class User {
     return User(
       id: (json['id'] as num).toInt(),
       email: json['email'] as String,
-      businessName: json['business_name'] as String?,
-      displayName: json['display_name'] as String?,
+      businessName: (json['businessName'] ?? json['business_name']) as String?,
+      displayName: (json['displayName'] ?? json['display_name']) as String?,
       role: roleValid,
       isActive: isActive,
-      createdAt: json['created_at'] as String? ?? '',
-      updatedAt: json['updated_at'] as String?,
+      createdAt: (json['createdAt'] ?? json['created_at'])?.toString() ?? '',
+      updatedAt: (json['updatedAt'] ?? json['updated_at'])?.toString(),
     );
   }
 
   Map<String, dynamic> toJson() => {
     'id': id,
     'email': email,
-    'business_name': businessName,
-    'display_name': displayName,
+    'businessName': businessName,
+    'displayName': displayName,
     'role': role,
-    'is_active': isActive,
-    'created_at': createdAt,
-    'updated_at': updatedAt,
+    'isActive': isActive,
+    'createdAt': createdAt,
+    'updatedAt': updatedAt,
   };
 }

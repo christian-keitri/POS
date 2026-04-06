@@ -5,7 +5,7 @@ import 'package:pos/config/api_config.dart';
 import 'package:pos/services/api_service.dart';
 import 'package:pos/models/reports.dart';
 
-/// Reports & analytics: sales trends, inventory trends, user activity, export placeholders.
+/// Reports & analytics: sales trends, inventory trends, export placeholders.
 class AdminReportsScreen extends StatefulWidget {
   const AdminReportsScreen({super.key});
 
@@ -18,7 +18,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
   String? _error;
   SalesReport? _salesReport;
   List<TopProduct> _topProducts = [];
-  List<Map<String, dynamic>> _userActivity = [];
+  Map<String, dynamic>? _revenueAnalytics;
   Map<String, dynamic>? _inventoryReport;
 
   @override
@@ -35,16 +35,17 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
     try {
       final sales = ApiService.getSalesReport(period: 'daily');
       final topProducts = ApiService.getTopProducts(period: 'monthly', limit: 10);
-      final activity = ApiService.getUserActivityLogs(limit: 50);
+      final revenue = ApiService.getRevenueAnalytics(period: 'daily', days: 14)
+          .catchError((_) => <String, dynamic>{});
       final inventory = ApiService.getInventoryReport();
 
-      final results = await Future.wait([sales, topProducts, activity, inventory]);
+      final results = await Future.wait([sales, topProducts, revenue, inventory]);
 
       if (!mounted) return;
       setState(() {
         _salesReport = results[0] as SalesReport;
         _topProducts = results[1] as List<TopProduct>;
-        _userActivity = results[2] as List<Map<String, dynamic>>;
+        _revenueAnalytics = results[2] as Map<String, dynamic>?;
         _inventoryReport = results[3] as Map<String, dynamic>?;
         _loading = false;
       });
@@ -126,7 +127,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
           ),
           const SizedBox(height: 24),
 
-          // Sales trend chart
+          // Sales trend chart (using revenue analytics)
           Card(
             child: Padding(
               padding: const EdgeInsets.all(20),
@@ -143,9 +144,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
                   const SizedBox(height: 16),
                   SizedBox(
                     height: 220,
-                    child: _SalesTrendChart(
-                      dailyBreakdown: _salesReport?.dailyBreakdown ?? [],
-                    ),
+                    child: _SalesTrendChart(revenueData: _revenueAnalytics),
                   ),
                 ],
               ),
@@ -202,59 +201,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
             ),
           const SizedBox(height: 24),
 
-          // User activity
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Recent user activity',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.textPrimary,
-                        ),
-                  ),
-                  const SizedBox(height: 12),
-                  if (_userActivity.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.all(24),
-                      child: Center(child: Text('No activity logs')),
-                    )
-                  else
-                    ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _userActivity.length,
-                      separatorBuilder: (_, _) => const Divider(height: 1),
-                      itemBuilder: (context, i) {
-                        final log = _userActivity[i];
-                        return ListTile(
-                          dense: true,
-                          leading: Icon(
-                            _actionIcon(log['action'] as String?),
-                            size: 20,
-                            color: AppTheme.textSecondary,
-                          ),
-                          title: Text(
-                            log['action']?.toString() ?? '—',
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                          subtitle: Text(
-                            'User ${log['user_id']} · ${log['created_at'] ?? ''}',
-                            style: AppTheme.smallStyle,
-                          ),
-                        );
-                      },
-                    ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Inventory summary (placeholder data from API)
+          // Inventory summary
           if (_inventoryReport != null) ...[
             Card(
               child: Padding(
@@ -270,12 +217,19 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
                           ),
                     ),
                     const SizedBox(height: 12),
-                    Text(
-                      _inventoryReport!.entries
-                          .map((e) => '${e.key}: ${e.value}')
-                          .join(' · '),
-                      style: AppTheme.bodySecondaryStyle,
-                    ),
+                    Builder(builder: (context) {
+                      final summary = _inventoryReport!['summary'] as Map<String, dynamic>?;
+                      if (summary == null) return const Text('No data');
+                      return Wrap(
+                        spacing: 24,
+                        runSpacing: 8,
+                        children: [
+                          Text('Products: ${summary['totalProducts'] ?? 0}', style: AppTheme.bodySecondaryStyle),
+                          Text('Stock value: \$${(summary['totalStockValue'] as num?)?.toStringAsFixed(2) ?? '0.00'}', style: AppTheme.bodySecondaryStyle),
+                          Text('Low stock: ${summary['lowStockCount'] ?? 0}', style: AppTheme.bodySecondaryStyle),
+                        ],
+                      );
+                    }),
                   ],
                 ),
               ),
@@ -297,26 +251,23 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
       const SnackBar(content: Text('Export PDF: connect to backend PDF generation or use a PDF package')),
     );
   }
-
-  static IconData _actionIcon(String? action) {
-    if (action == null) return Icons.circle;
-    if (action.contains('login')) return Icons.login_rounded;
-    if (action.contains('order')) return Icons.shopping_cart_rounded;
-    return Icons.touch_app_rounded;
-  }
 }
 
 class _SalesTrendChart extends StatelessWidget {
-  final List<DailyBreakdown> dailyBreakdown;
+  final Map<String, dynamic>? revenueData;
 
-  const _SalesTrendChart({required this.dailyBreakdown});
+  const _SalesTrendChart({required this.revenueData});
 
   @override
   Widget build(BuildContext context) {
-    final spots = dailyBreakdown
+    final dataList = (revenueData?['data'] as List<dynamic>?) ?? [];
+    final spots = dataList
         .asMap()
         .entries
-        .map((e) => FlSpot(e.key.toDouble(), e.value.revenue))
+        .map((e) {
+          final entry = e.value as Map<String, dynamic>;
+          return FlSpot(e.key.toDouble(), (entry['revenue'] as num?)?.toDouble() ?? 0);
+        })
         .toList();
     if (spots.isEmpty) spots.add(const FlSpot(0, 0));
     final maxY = spots.map((s) => s.y).reduce((a, b) => a > b ? a : b) * 1.1;
@@ -341,8 +292,9 @@ class _SalesTrendChart extends StatelessWidget {
               reservedSize: 28,
               getTitlesWidget: (v, meta) {
                 final i = v.toInt();
-                if (i >= 0 && i < dailyBreakdown.length) {
-                  final d = dailyBreakdown[i].date;
+                if (i >= 0 && i < dataList.length) {
+                  final entry = dataList[i] as Map<String, dynamic>;
+                  final d = entry['period']?.toString() ?? '';
                   return Padding(
                     padding: const EdgeInsets.only(top: 8),
                     child: Text(

@@ -99,7 +99,7 @@ class _CartScreenState extends State<CartScreen> {
     setState(() => _placing = true);
     try {
       final items = _cart.entries
-          .map((e) => {'product_id': e.key, 'quantity': e.value})
+          .map((e) => {'productId': e.key, 'quantity': e.value})
           .toList();
       await ApiService.createOrder(
         userId: AppState.currentUser?.id,

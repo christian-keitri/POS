@@ -202,8 +202,8 @@ class _DashboardTabState extends State<_DashboardTab> {
         ),
       );
     }
-    final count = (_stats?['today_orders_count'] as num?)?.toInt() ?? 0;
-    final revenue = (_stats?['today_revenue'] as num?)?.toDouble() ?? 0.0;
+    final count = (_stats?['todayOrders'] as num?)?.toInt() ?? 0;
+    final revenue = (_stats?['todayRevenue'] as num?)?.toDouble() ?? 0.0;
     final dateStr = _formatDate(DateTime.now());
     return RefreshIndicator(
       onRefresh: _load,

@@ -31,8 +31,12 @@ class Product {
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
-    final isActiveRaw = json['is_active'];
+    final isActiveRaw = json['isActive'] ?? json['is_active'];
     final isActive = isActiveRaw == null ? true : (isActiveRaw == 1 || isActiveRaw == true);
+
+    // Handle nested category object from Prisma include
+    final category = json['category'] as Map<String, dynamic>?;
+
     return Product(
       id: (json['id'] as num).toInt(),
       name: json['name'] as String,
@@ -42,10 +46,16 @@ class Product {
       price: (json['price'] as num).toDouble(),
       cost: (json['cost'] as num?)?.toDouble() ?? 0,
       stock: (json['stock'] as num?)?.toInt() ?? 0,
-      lowStockThreshold: (json['low_stock_threshold'] as num?)?.toInt() ?? 10,
-      categoryId: (json['category_id'] as num?)?.toInt(),
-      categoryName: json['category_name'] as String?,
-      imagePath: json['image_path'] as String?,
+      lowStockThreshold: (json['lowStockThreshold'] as num?)?.toInt()
+          ?? (json['low_stock_threshold'] as num?)?.toInt()
+          ?? 10,
+      categoryId: (json['categoryId'] as num?)?.toInt()
+          ?? (json['category_id'] as num?)?.toInt()
+          ?? (category?['id'] as num?)?.toInt(),
+      categoryName: json['categoryName'] as String?
+          ?? json['category_name'] as String?
+          ?? category?['name'] as String?,
+      imagePath: json['imagePath'] as String? ?? json['image_path'] as String?,
       isActive: isActive,
     );
   }
@@ -59,7 +69,7 @@ class Product {
         'price': price,
         'cost': cost,
         'stock': stock,
-        'category_id': categoryId,
-        'is_active': isActive ? 1 : 0,
+        'categoryId': categoryId,
+        'isActive': isActive,
       };
 }

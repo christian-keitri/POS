@@ -209,7 +209,7 @@ class _AdminSalesScreenState extends State<AdminSalesScreen> {
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     child: Text(
-                      '${m['product_name']} x${m['quantity']} — \$${(m['subtotal'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
+                      '${m['name'] ?? m['productName'] ?? ''} x${m['qty'] ?? m['quantity']} — \$${(m['subtotal'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
                     ),
                   );
                 }),

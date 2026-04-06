@@ -323,8 +323,12 @@ class _SalesChartCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final daily = salesReport?.dailyBreakdown ?? [];
-    final spots = daily.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value.revenue)).toList();
+    // Use revenue analytics data for the chart
+    final revenueData = (revenue?['data'] as List<dynamic>?) ?? [];
+    final spots = revenueData.asMap().entries.map((e) {
+      final entry = e.value as Map<String, dynamic>;
+      return FlSpot(e.key.toDouble(), (entry['revenue'] as num?)?.toDouble() ?? 0);
+    }).toList();
     if (spots.isEmpty) {
       spots.add(const FlSpot(0, 0));
     }
@@ -366,8 +370,9 @@ class _SalesChartCard extends StatelessWidget {
                         reservedSize: 28,
                         getTitlesWidget: (v, meta) {
                           final i = v.toInt();
-                          if (i >= 0 && i < daily.length) {
-                            final d = daily[i].date;
+                          if (i >= 0 && i < revenueData.length) {
+                            final entry = revenueData[i] as Map<String, dynamic>;
+                            final d = entry['period']?.toString() ?? '';
                             return Padding(
                               padding: const EdgeInsets.only(top: 8),
                               child: Text(

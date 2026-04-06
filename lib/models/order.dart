@@ -35,22 +35,22 @@ class OrderItem {
   factory OrderItem.fromJson(Map<String, dynamic> json) {
     return OrderItem(
       id: _toInt(json['id']),
-      productId: _toInt(json['product_id']),
-      productName: json['product_name'] as String? ?? '',
+      productId: _toInt(json['productId'] ?? json['product_id']),
+      productName: (json['productName'] ?? json['product_name']) as String? ?? '',
       quantity: _toInt(json['quantity']),
-      unitPrice: _toDouble(json['unit_price']),
+      unitPrice: _toDouble(json['unitPrice'] ?? json['unit_price']),
       subtotal: _toDouble(json['subtotal']),
-      discountAmount: _toDouble(json['discount_amount']),
+      discountAmount: _toDouble(json['discountAmount'] ?? json['discount_amount']),
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'product_id': productId,
-    'product_name': productName,
+    'productId': productId,
+    'productName': productName,
     'quantity': quantity,
-    'unit_price': unitPrice,
+    'unitPrice': unitPrice,
     'subtotal': subtotal,
-    'discount_amount': discountAmount,
+    'discountAmount': discountAmount,
   };
 }
 
@@ -91,22 +91,32 @@ class Order {
 
   factory Order.fromJson(Map<String, dynamic> json) {
     final itemsList = json['items'] as List<dynamic>?;
-    final userIdRaw = json['user_id'];
+    final userIdRaw = json['userId'] ?? json['user_id'];
+
+    // paymentDetails may be a JSON object or string
+    String? paymentDetails;
+    final pd = json['paymentDetails'] ?? json['payment_details'];
+    if (pd is String) {
+      paymentDetails = pd;
+    } else if (pd != null) {
+      paymentDetails = pd.toString();
+    }
+
     return Order(
       id: _toInt(json['id']),
-      orderNumber: json['order_number'] as String?,
+      orderNumber: (json['orderNumber'] ?? json['order_number']) as String?,
       userId: userIdRaw == null ? null : _toInt(userIdRaw),
-      cashierId: (json['cashier_id'] as num?)?.toInt(),
+      cashierId: _toInt(json['cashierId'] ?? json['cashier_id']),
       subtotal: _toDouble(json['subtotal']),
-      taxAmount: _toDouble(json['tax_amount']),
-      discountAmount: _toDouble(json['discount_amount']),
+      taxAmount: _toDouble(json['taxAmount'] ?? json['tax_amount']),
+      discountAmount: _toDouble(json['discountAmount'] ?? json['discount_amount']),
       total: _toDouble(json['total']),
-      status: json['status'] as String? ?? 'pending',
-      paymentMethod: json['payment_method'] as String?,
-      paymentDetails: json['payment_details'] as String?,
+      status: (json['status'] as String?) ?? 'PENDING',
+      paymentMethod: (json['paymentMethod'] ?? json['payment_method']) as String?,
+      paymentDetails: paymentDetails,
       notes: json['notes'] as String?,
-      createdAt: json['created_at'] as String? ?? '',
-      updatedAt: json['updated_at'] as String?,
+      createdAt: (json['createdAt'] ?? json['created_at'])?.toString() ?? '',
+      updatedAt: (json['updatedAt'] ?? json['updated_at'])?.toString(),
       items: itemsList != null
           ? itemsList.map((e) => OrderItem.fromJson(e as Map<String, dynamic>)).toList()
           : [],
@@ -115,19 +125,19 @@ class Order {
 
   Map<String, dynamic> toJson() => {
     'id': id,
-    'order_number': orderNumber,
-    'user_id': userId,
-    'cashier_id': cashierId,
+    'orderNumber': orderNumber,
+    'userId': userId,
+    'cashierId': cashierId,
     'subtotal': subtotal,
-    'tax_amount': taxAmount,
-    'discount_amount': discountAmount,
+    'taxAmount': taxAmount,
+    'discountAmount': discountAmount,
     'total': total,
     'status': status,
-    'payment_method': paymentMethod,
-    'payment_details': paymentDetails,
+    'paymentMethod': paymentMethod,
+    'paymentDetails': paymentDetails,
     'notes': notes,
-    'created_at': createdAt,
-    'updated_at': updatedAt,
+    'createdAt': createdAt,
+    'updatedAt': updatedAt,
     'items': items.map((e) => e.toJson()).toList(),
   };
 }

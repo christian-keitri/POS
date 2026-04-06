@@ -23,10 +23,21 @@ class ApiService {
     return headers;
   }
 
+  /// Unwrap the backend response envelope `{ success, data, meta }`.
+  /// Returns the `data` field. Throws on non-success or unexpected shape.
+  static dynamic _unwrap(http.Response r) {
+    final body = jsonDecode(r.body);
+    if (body is Map<String, dynamic> && body.containsKey('data')) {
+      return body['data'];
+    }
+    return body;
+  }
+
   static Future<List<Category>> getCategories() async {
     final r = await http.get(Uri.parse('$_base/api/categories'), headers: _authHeaders);
     if (r.statusCode != 200) throw Exception(r.body);
-    final list = jsonDecode(r.body) as List;
+    final data = _unwrap(r);
+    final list = data is List ? data : (data as List);
     return list.map((e) => Category.fromJson(e as Map<String, dynamic>)).toList();
   }
 
@@ -37,14 +48,14 @@ class ApiService {
       body: jsonEncode({
         'name': name,
         'description': description,
-        'sort_order': sortOrder,
+        'sortOrder': sortOrder,
       }),
     );
     if (r.statusCode != 201) {
       final err = jsonDecode(r.body);
       throw Exception(err['error'] ?? r.body);
     }
-    return Category.fromJson(jsonDecode(r.body) as Map<String, dynamic>);
+    return Category.fromJson(_unwrap(r) as Map<String, dynamic>);
   }
 
   static Future<void> updateCategory(int id, String name, {String? description, int? sortOrder}) async {
@@ -54,7 +65,7 @@ class ApiService {
       body: jsonEncode({
         'name': name,
         'description': description,
-        'sort_order': sortOrder,
+        'sortOrder': sortOrder,
       }),
     );
     if (r.statusCode != 200) {
@@ -74,19 +85,20 @@ class ApiService {
   static Future<List<Product>> getProducts({int? categoryId, bool activeOnly = false}) async {
     var url = '$_base/api/products';
     final q = <String>[];
-    if (categoryId != null) q.add('category_id=$categoryId');
-    if (activeOnly) q.add('active_only=1');
+    if (categoryId != null) q.add('categoryId=$categoryId');
+    if (activeOnly) q.add('isActive=true');
     if (q.isNotEmpty) url += '?${q.join('&')}';
     final r = await http.get(Uri.parse(url), headers: _authHeaders);
     if (r.statusCode != 200) throw Exception(r.body);
-    final list = jsonDecode(r.body) as List;
+    final data = _unwrap(r);
+    final list = data is List ? data : (data as List);
     return list.map((e) => Product.fromJson(e as Map<String, dynamic>)).toList();
   }
 
   static Future<Product> getProduct(int id) async {
     final r = await http.get(Uri.parse('$_base/api/products/$id'), headers: _authHeaders);
     if (r.statusCode != 200) throw Exception(r.body);
-    return Product.fromJson(jsonDecode(r.body) as Map<String, dynamic>);
+    return Product.fromJson(_unwrap(r) as Map<String, dynamic>);
   }
 
   static Future<Product> createProduct({
@@ -111,15 +123,15 @@ class ApiService {
         'price': price,
         'cost': cost,
         'stock': stock,
-        'category_id': categoryId,
-        'is_active': isActive,
+        'categoryId': categoryId,
+        'isActive': isActive,
       }),
     );
     if (r.statusCode != 201) {
       final err = jsonDecode(r.body) as Map<String, dynamic>;
       throw Exception(err['error'] ?? r.body);
     }
-    return Product.fromJson(jsonDecode(r.body) as Map<String, dynamic>);
+    return Product.fromJson(_unwrap(r) as Map<String, dynamic>);
   }
 
   static Future<Product> updateProduct(
@@ -142,8 +154,8 @@ class ApiService {
     if (price != null) body['price'] = price;
     if (cost != null) body['cost'] = cost;
     if (stock != null) body['stock'] = stock;
-    if (categoryId != null) body['category_id'] = categoryId;
-    if (isActive != null) body['is_active'] = isActive;
+    if (categoryId != null) body['categoryId'] = categoryId;
+    if (isActive != null) body['isActive'] = isActive;
     final r = await http.put(
       Uri.parse('$_base/api/products/$id'),
       headers: _authHeaders,
@@ -153,7 +165,7 @@ class ApiService {
       final err = jsonDecode(r.body) as Map<String, dynamic>;
       throw Exception(err['error'] ?? r.body);
     }
-    return Product.fromJson(jsonDecode(r.body) as Map<String, dynamic>);
+    return Product.fromJson(_unwrap(r) as Map<String, dynamic>);
   }
 
   static Future<void> deleteProduct(int id) async {
@@ -200,33 +212,34 @@ class ApiService {
       } catch (_) {}
       throw Exception(msg);
     }
-    return Product.fromJson(jsonDecode(r.body) as Map<String, dynamic>);
+    return Product.fromJson(_unwrap(r) as Map<String, dynamic>);
   }
 
   static Future<Map<String, dynamic>> getOrderStats({int? userId}) async {
     var url = '$_base/api/orders/stats';
-    if (userId != null) url += '?user_id=$userId';
+    if (userId != null) url += '?userId=$userId';
     final r = await http.get(Uri.parse(url), headers: _authHeaders);
     if (r.statusCode != 200) throw Exception(r.body);
-    return jsonDecode(r.body) as Map<String, dynamic>;
+    return _unwrap(r) as Map<String, dynamic>;
   }
 
   static Future<List<Order>> getOrders({int? userId, String? status}) async {
     var url = '$_base/api/orders';
     final q = <String>[];
-    if (userId != null) q.add('user_id=$userId');
+    if (userId != null) q.add('userId=$userId');
     if (status != null) q.add('status=$status');
     if (q.isNotEmpty) url += '?${q.join('&')}';
     final r = await http.get(Uri.parse(url), headers: _authHeaders);
     if (r.statusCode != 200) throw Exception(r.body);
-    final list = jsonDecode(r.body) as List;
+    final data = _unwrap(r);
+    final list = data is List ? data : (data as List);
     return list.map((e) => Order.fromJson(e as Map<String, dynamic>)).toList();
   }
 
   static Future<Order> getOrder(int id) async {
     final r = await http.get(Uri.parse('$_base/api/orders/$id'), headers: _authHeaders);
     if (r.statusCode != 200) throw Exception(r.body);
-    return Order.fromJson(jsonDecode(r.body) as Map<String, dynamic>);
+    return Order.fromJson(_unwrap(r) as Map<String, dynamic>);
   }
 
   static int _itemInt(dynamic v) {
@@ -248,13 +261,13 @@ class ApiService {
       Uri.parse('$_base/api/orders'),
       headers: _authHeaders,
       body: jsonEncode({
-        'user_id': userId,
-        'cashier_id': cashierId,
-        'payment_method': paymentMethod,
+        'userId': userId,
+        'cashierId': cashierId,
+        'paymentMethod': paymentMethod,
         'notes': notes,
         'items': items
             .map((e) => {
-                  'product_id': _itemInt(e['product_id']),
+                  'productId': _itemInt(e['product_id'] ?? e['productId']),
                   'quantity': _itemInt(e['quantity']).clamp(1, 999999),
                 })
             .toList(),
@@ -270,7 +283,7 @@ class ApiService {
       } catch (_) {}
       throw Exception(message);
     }
-    return Order.fromJson(jsonDecode(r.body) as Map<String, dynamic>);
+    return Order.fromJson(_unwrap(r) as Map<String, dynamic>);
   }
 
   static Future<Order> updateOrderStatus(int id, String status) async {
@@ -285,9 +298,9 @@ class ApiService {
   }) async {
     final body = <String, dynamic>{};
     if (status != null) body['status'] = status;
-    if (paymentMethod != null) body['payment_method'] = paymentMethod;
+    if (paymentMethod != null) body['paymentMethod'] = paymentMethod;
     if (notes != null) body['notes'] = notes;
-    if (body.isEmpty) throw Exception('Provide at least one of: status, payment_method, notes');
+    if (body.isEmpty) throw Exception('Provide at least one of: status, paymentMethod, notes');
     final r = await http.patch(
       Uri.parse('$_base/api/orders/$id'),
       headers: _authHeaders,
@@ -297,33 +310,34 @@ class ApiService {
       final err = jsonDecode(r.body) as Map<String, dynamic>;
       throw Exception(err['error'] ?? r.body);
     }
-    return Order.fromJson(jsonDecode(r.body) as Map<String, dynamic>);
+    return Order.fromJson(_unwrap(r) as Map<String, dynamic>);
   }
 
   static Future<Map<String, dynamic>> getReceipt(int orderId) async {
     final r = await http.get(Uri.parse('$_base/api/orders/$orderId/receipt'), headers: _authHeaders);
     if (r.statusCode != 200) throw Exception(r.body);
-    return jsonDecode(r.body) as Map<String, dynamic>;
+    return _unwrap(r) as Map<String, dynamic>;
   }
 
   // ==================== User Management ====================
 
   static Future<List<User>> getUsers({String? role, bool? isActive}) async {
-    var url = '$_base/api/auth/users';
+    var url = '$_base/api/users';
     final q = <String>[];
     if (role != null) q.add('role=$role');
-    if (isActive != null) q.add('is_active=${isActive ? '1' : '0'}');
+    if (isActive != null) q.add('isActive=${isActive ? 'true' : 'false'}');
     if (q.isNotEmpty) url += '?${q.join('&')}';
     final r = await http.get(Uri.parse(url), headers: _authHeaders);
     if (r.statusCode != 200) throw Exception(r.body);
-    final list = jsonDecode(r.body) as List;
+    final data = _unwrap(r);
+    final list = data is List ? data : (data as List);
     return list.map((e) => User.fromJson(e as Map<String, dynamic>)).toList();
   }
 
   static Future<User> getUser(int id) async {
-    final r = await http.get(Uri.parse('$_base/api/auth/users/$id'), headers: _authHeaders);
+    final r = await http.get(Uri.parse('$_base/api/users/$id'), headers: _authHeaders);
     if (r.statusCode != 200) throw Exception(r.body);
-    return User.fromJson(jsonDecode(r.body) as Map<String, dynamic>);
+    return User.fromJson(_unwrap(r) as Map<String, dynamic>);
   }
 
   static Future<User> createUser({
@@ -334,13 +348,13 @@ class ApiService {
     String role = 'cashier',
   }) async {
     final r = await http.post(
-      Uri.parse('$_base/api/auth/users'),
+      Uri.parse('$_base/api/users'),
       headers: _authHeaders,
       body: jsonEncode({
         'email': email,
         'password': password,
-        'business_name': businessName,
-        'display_name': displayName,
+        'businessName': businessName,
+        'displayName': displayName,
         'role': role,
       }),
     );
@@ -348,7 +362,7 @@ class ApiService {
       final err = jsonDecode(r.body);
       throw Exception(err['error'] ?? r.body);
     }
-    return User.fromJson(jsonDecode(r.body) as Map<String, dynamic>);
+    return User.fromJson(_unwrap(r) as Map<String, dynamic>);
   }
 
   static Future<User> updateUser(
@@ -363,12 +377,12 @@ class ApiService {
     final body = <String, dynamic>{};
     if (email != null) body['email'] = email;
     if (password != null) body['password'] = password;
-    if (businessName != null) body['business_name'] = businessName;
-    if (displayName != null) body['display_name'] = displayName;
+    if (businessName != null) body['businessName'] = businessName;
+    if (displayName != null) body['displayName'] = displayName;
     if (role != null) body['role'] = role;
-    if (isActive != null) body['is_active'] = isActive;
+    if (isActive != null) body['isActive'] = isActive;
     final r = await http.put(
-      Uri.parse('$_base/api/auth/users/$id'),
+      Uri.parse('$_base/api/users/$id'),
       headers: _authHeaders,
       body: jsonEncode(body),
     );
@@ -376,11 +390,11 @@ class ApiService {
       final err = jsonDecode(r.body);
       throw Exception(err['error'] ?? r.body);
     }
-    return User.fromJson(jsonDecode(r.body) as Map<String, dynamic>);
+    return User.fromJson(_unwrap(r) as Map<String, dynamic>);
   }
 
   static Future<void> deleteUser(int id) async {
-    final r = await http.delete(Uri.parse('$_base/api/auth/users/$id'), headers: _authHeaders);
+    final r = await http.delete(Uri.parse('$_base/api/users/$id'), headers: _authHeaders);
     if (r.statusCode != 204) {
       final body = r.body.isEmpty ? {} : jsonDecode(r.body) as Map<String, dynamic>;
       throw Exception(body['error'] ?? r.body);
@@ -398,15 +412,16 @@ class ApiService {
   }) async {
     var url = '$_base/api/stock/adjustments';
     final q = <String>[];
-    if (productId != null) q.add('product_id=$productId');
-    if (userId != null) q.add('user_id=$userId');
+    if (productId != null) q.add('productId=$productId');
+    if (userId != null) q.add('userId=$userId');
     if (reason != null) q.add('reason=$reason');
     q.add('limit=$limit');
     q.add('offset=$offset');
     if (q.isNotEmpty) url += '?${q.join('&')}';
     final r = await http.get(Uri.parse(url), headers: _authHeaders);
     if (r.statusCode != 200) throw Exception(r.body);
-    final list = jsonDecode(r.body) as List;
+    final data = _unwrap(r);
+    final list = data is List ? data : (data as List);
     return list.map((e) => StockAdjustment.fromJson(e as Map<String, dynamic>)).toList();
   }
 
@@ -414,16 +429,16 @@ class ApiService {
     required int productId,
     int? userId,
     required int quantityChange,
-    String reason = 'adjustment',
+    String reason = 'ADJUSTMENT',
     String? notes,
   }) async {
     final r = await http.post(
       Uri.parse('$_base/api/stock/adjust'),
       headers: _authHeaders,
       body: jsonEncode({
-        'product_id': productId,
-        'user_id': userId,
-        'quantity_change': quantityChange,
+        'productId': productId,
+        'userId': userId,
+        'quantityChange': quantityChange,
         'reason': reason,
         'notes': notes,
       }),
@@ -432,15 +447,16 @@ class ApiService {
       final err = jsonDecode(r.body);
       throw Exception(err['error'] ?? r.body);
     }
-    return StockAdjustment.fromJson(jsonDecode(r.body) as Map<String, dynamic>);
+    return StockAdjustment.fromJson(_unwrap(r) as Map<String, dynamic>);
   }
 
   static Future<List<Product>> getLowStockAlerts({int? categoryId}) async {
     var url = '$_base/api/stock/alerts';
-    if (categoryId != null) url += '?category_id=$categoryId';
+    if (categoryId != null) url += '?categoryId=$categoryId';
     final r = await http.get(Uri.parse(url), headers: _authHeaders);
     if (r.statusCode != 200) throw Exception(r.body);
-    final list = jsonDecode(r.body) as List;
+    final data = _unwrap(r);
+    final list = data is List ? data : (data as List);
     return list.map((e) => Product.fromJson(e as Map<String, dynamic>)).toList();
   }
 
@@ -456,14 +472,14 @@ class ApiService {
     var url = '$_base/api/reports/sales';
     final q = <String>[];
     q.add('period=$period');
-    if (startDate != null) q.add('start_date=$startDate');
-    if (endDate != null) q.add('end_date=$endDate');
-    if (cashierId != null) q.add('cashier_id=$cashierId');
+    if (startDate != null) q.add('startDate=$startDate');
+    if (endDate != null) q.add('endDate=$endDate');
+    if (cashierId != null) q.add('cashierId=$cashierId');
     q.add('status=$status');
     if (q.isNotEmpty) url += '?${q.join('&')}';
     final r = await http.get(Uri.parse(url), headers: _authHeaders);
     if (r.statusCode != 200) throw Exception(r.body);
-    return SalesReport.fromJson(jsonDecode(r.body) as Map<String, dynamic>);
+    return SalesReport.fromJson(_unwrap(r) as Map<String, dynamic>);
   }
 
   static Future<Map<String, dynamic>> getInventoryReport({
@@ -472,12 +488,12 @@ class ApiService {
   }) async {
     var url = '$_base/api/reports/inventory';
     final q = <String>[];
-    if (categoryId != null) q.add('category_id=$categoryId');
-    if (lowStockOnly) q.add('low_stock_only=1');
+    if (categoryId != null) q.add('categoryId=$categoryId');
+    if (lowStockOnly) q.add('lowStockOnly=true');
     if (q.isNotEmpty) url += '?${q.join('&')}';
     final r = await http.get(Uri.parse(url), headers: _authHeaders);
     if (r.statusCode != 200) throw Exception(r.body);
-    return jsonDecode(r.body) as Map<String, dynamic>;
+    return _unwrap(r) as Map<String, dynamic>;
   }
 
   static Future<List<TopProduct>> getTopProducts({
@@ -490,12 +506,13 @@ class ApiService {
     final q = <String>[];
     q.add('period=$period');
     q.add('limit=$limit');
-    if (startDate != null) q.add('start_date=$startDate');
-    if (endDate != null) q.add('end_date=$endDate');
+    if (startDate != null) q.add('startDate=$startDate');
+    if (endDate != null) q.add('endDate=$endDate');
     if (q.isNotEmpty) url += '?${q.join('&')}';
     final r = await http.get(Uri.parse(url), headers: _authHeaders);
     if (r.statusCode != 200) throw Exception(r.body);
-    final list = jsonDecode(r.body) as List;
+    final data = _unwrap(r);
+    final list = data is List ? data : (data as List);
     return list.map((e) => TopProduct.fromJson(e as Map<String, dynamic>)).toList();
   }
 
@@ -509,16 +526,17 @@ class ApiService {
   }) async {
     var url = '$_base/api/reports/user-activity';
     final q = <String>[];
-    if (userId != null) q.add('user_id=$userId');
+    if (userId != null) q.add('userId=$userId');
     if (action != null) q.add('action=$action');
-    if (startDate != null) q.add('start_date=$startDate');
-    if (endDate != null) q.add('end_date=$endDate');
+    if (startDate != null) q.add('startDate=$startDate');
+    if (endDate != null) q.add('endDate=$endDate');
     q.add('limit=$limit');
     q.add('offset=$offset');
     if (q.isNotEmpty) url += '?${q.join('&')}';
     final r = await http.get(Uri.parse(url), headers: _authHeaders);
     if (r.statusCode != 200) throw Exception(r.body);
-    return (jsonDecode(r.body) as List).cast<Map<String, dynamic>>();
+    final data = _unwrap(r);
+    return (data as List).cast<Map<String, dynamic>>();
   }
 
   static Future<Map<String, dynamic>> getRevenueAnalytics({
@@ -528,7 +546,7 @@ class ApiService {
     var url = '$_base/api/reports/revenue?period=$period&days=$days';
     final r = await http.get(Uri.parse(url), headers: _authHeaders);
     if (r.statusCode != 200) throw Exception(r.body);
-    return jsonDecode(r.body) as Map<String, dynamic>;
+    return _unwrap(r) as Map<String, dynamic>;
   }
 
   static Future<List<Map<String, dynamic>>> getCashierPerformance({
@@ -539,12 +557,12 @@ class ApiService {
     var url = '$_base/api/reports/cashier-performance';
     final q = <String>[];
     q.add('period=$period');
-    if (startDate != null) q.add('start_date=$startDate');
-    if (endDate != null) q.add('end_date=$endDate');
+    if (startDate != null) q.add('startDate=$startDate');
+    if (endDate != null) q.add('endDate=$endDate');
     if (q.isNotEmpty) url += '?${q.join('&')}';
     final r = await http.get(Uri.parse(url), headers: _authHeaders);
     if (r.statusCode != 200) throw Exception(r.body);
-    return (jsonDecode(r.body) as List).cast<Map<String, dynamic>>();
+    final data = _unwrap(r);
+    return (data as List).cast<Map<String, dynamic>>();
   }
 }
-
