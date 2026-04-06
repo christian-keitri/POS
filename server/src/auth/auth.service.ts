@@ -22,7 +22,7 @@ export class AuthService {
     private prisma: PrismaService,
     private jwt: JwtService,
     private config: ConfigService,
-  ) {}
+  ) { }
 
   async signup(dto: SignupDto) {
     const exists = await this.prisma.user.findUnique({
@@ -31,13 +31,14 @@ export class AuthService {
     if (exists) throw new ConflictException('Email already registered');
 
     const hash = await bcrypt.hash(dto.password, 12);
+    const role = dto.role ? (dto.role.toUpperCase() as any) : 'CASHIER';
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
         passwordHash: hash,
         businessName: dto.businessName,
         displayName: dto.displayName,
-        role: dto.role,
+        role,
       },
     });
 

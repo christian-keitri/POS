@@ -41,9 +41,11 @@ class _SignupScreenState extends State<SignupScreen> {
         body: jsonEncode({
           'email': _emailController.text.trim(),
           'password': _passwordController.text.trim(),
+          'businessName': _businessController.text.trim(),
           'displayName': _businessController.text.trim().isEmpty
               ? _emailController.text.trim()
               : _businessController.text.trim(),
+          'role': _selectedRole,
         }),
       );
 
